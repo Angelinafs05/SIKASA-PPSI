@@ -1,0 +1,150 @@
+{
+    "ekskul": [
+        {
+            "Field": "id",
+            "Type": "int",
+            "Null": "NO",
+            "Key": "PRI",
+            "Default": null,
+            "Extra": "auto_increment"
+        },
+        {
+            "Field": "nama_ekskul",
+            "Type": "varchar(100)",
+            "Null": "NO",
+            "Key": "",
+            "Default": null,
+            "Extra": ""
+        },
+        {
+            "Field": "pelatih",
+            "Type": "varchar(100)",
+            "Null": "YES",
+            "Key": "",
+            "Default": null,
+            "Extra": ""
+        },
+        {
+            "Field": "pendamping",
+            "Type": "varchar(255)",
+            "Null": "YES",
+            "Key": "",
+            "Default": null,
+            "Extra": ""
+        },
+        {
+            "Field": "hari",
+            "Type": "varchar(255)",
+            "Null": "YES",
+            "Key": "",
+            "Default": null,
+            "Extra": ""
+        },
+        {
+            "Field": "jam",
+            "Type": "varchar(255)",
+            "Null": "YES",
+            "Key": "",
+            "Default": null,
+            "Extra": ""
+        },
+        {
+            "Field": "tempat",
+            "Type": "varchar(255)",
+            "Null": "YES",
+            "Key": "",
+            "Default": null,
+            "Extra": ""
+        },
+        {
+            "Field": "target_kelas",
+            "Type": "text",
+            "Null": "YES",
+            "Key": "",
+            "Default": null,
+            "Extra": ""
+        },
+        {
+            "Field": "is_seleksi",
+            "Type": "tinyint(1)",
+            "Null": "YES",
+            "Key": "",
+            "Default": "0",
+            "Extra": ""
+        },
+        {
+            "Field": "tahun_ajaran",
+            "Type": "varchar(20)",
+            "Null": "YES",
+            "Key": "",
+            "Default": null,
+            "Extra": ""
+        },
+        {
+            "Field": "semester",
+            "Type": "enum('Ganjil','Genap')",
+            "Null": "YES",
+            "Key": "",
+            "Default": null,
+            "Extra": ""
+        }
+    ],
+    "pelatih": [
+        {
+            "Field": "id",
+            "Type": "int",
+            "Null": "NO",
+            "Key": "PRI",
+            "Default": null,
+            "Extra": "auto_increment"
+        },
+        {
+            "Field": "nama_pelatih",
+            "Type": "varchar(100)",
+            "Null": "NO",
+            "Key": "",
+            "Default": null,
+            "Extra": ""
+        },
+        {
+            "Field": "no_hp",
+            "Type": "varchar(20)",
+            "Null": "YES",
+            "Key": "",
+            "Default": null,
+            "Extra": ""
+        },
+        {
+            "Field": "alamat",
+            "Type": "text",
+            "Null": "YES",
+            "Key": "",
+            "Default": null,
+            "Extra": ""
+        },
+        {
+            "Field": "pendamping",
+            "Type": "varchar(100)",
+            "Null": "YES",
+            "Key": "",
+            "Default": null,
+            "Extra": ""
+        },
+        {
+            "Field": "ekskul_id",
+            "Type": "int",
+            "Null": "YES",
+            "Key": "MUL",
+            "Default": null,
+            "Extra": ""
+        },
+        {
+            "Field": "guru_id",
+            "Type": "int",
+            "Null": "YES",
+            "Key": "MUL",
+            "Default": null,
+            "Extra": ""
+        }
+    ]
+}

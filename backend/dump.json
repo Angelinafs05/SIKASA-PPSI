@@ -1,0 +1,94 @@
+{
+    "ekskuls": [
+        {
+            "id": 1,
+            "nama_ekskul": "Tari Modern",
+            "pelatih": "Pak Bayu",
+            "pendamping": "Bu Yuni",
+            "hari": "Senin",
+            "jam": "14.30 - 16.00",
+            "tempat": "Aula",
+            "target_kelas": "[\"7\",\"8\",\"9\"]",
+            "is_seleksi": 0,
+            "tahun_ajaran": null,
+            "semester": null
+        },
+        {
+            "id": 2,
+            "nama_ekskul": "Band Inti",
+            "pelatih": "Pak Edo",
+            "pendamping": null,
+            "hari": "Kamis",
+            "jam": "14.00 - 15.30, 15.30 - 17.00",
+            "tempat": "Band Inti",
+            "target_kelas": "[\"7\",\"8\",\"9\"]",
+            "is_seleksi": 1,
+            "tahun_ajaran": null,
+            "semester": null
+        }
+    ],
+    "pelatihs": [
+        {
+            "id": 1,
+            "nama_pelatih": "Pak Bayu",
+            "no_hp": "0987777777777",
+            "alamat": "ahahahahaha",
+            "pendamping": "Bu Yuni",
+            "ekskul_id": 4,
+            "guru_id": 30,
+            "nama_ekskul": "Tari Modern",
+            "ekskul_pendamping": null
+        },
+        {
+            "id": 2,
+            "nama_pelatih": "Pak Edo",
+            "no_hp": "09832323232",
+            "alamat": "gcfcyufyu",
+            "pendamping": "Pak Andik",
+            "ekskul_id": 6,
+            "guru_id": 29,
+            "nama_ekskul": "Band Inti",
+            "ekskul_pendamping": null
+        },
+        {
+            "id": 3,
+            "nama_pelatih": "Pak Mesak",
+            "no_hp": "0987766554433",
+            "alamat": "bfwfbwukfbe",
+            "pendamping": null,
+            "ekskul_id": 3,
+            "guru_id": null,
+            "nama_ekskul": "Basket Putra",
+            "ekskul_pendamping": null
+        },
+        {
+            "id": 4,
+            "nama_pelatih": "Pak Tegar",
+            "no_hp": "09832323232",
+            "alamat": null,
+            "pendamping": null,
+            "ekskul_id": 5,
+            "guru_id": null,
+            "nama_ekskul": "Basket Putra",
+            "ekskul_pendamping": null
+        }
+    ],
+    "gurus": [
+        {
+            "id": 29,
+            "nama_guru": "Pak Andik",
+            "nip": null,
+            "kode_guru": null,
+            "no_hp": "089566774455",
+            "created_at": "2026-02-28 19:09:06"
+        },
+        {
+            "id": 30,
+            "nama_guru": "Bu Yuni",
+            "nip": null,
+            "kode_guru": null,
+            "no_hp": "098566778899",
+            "created_at": "2026-03-01 20:20:00"
+        }
+    ]
+}
