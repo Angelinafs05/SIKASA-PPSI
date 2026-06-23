@@ -145,8 +145,8 @@ const AdminParent = () => {
         }
     };
 
-    const filteredSiswa = siswaList.filter(s => 
-        s.nama_siswa.toLowerCase().includes(searchTerm.toLowerCase()) || 
+    const filteredSiswa = siswaList.filter(s =>
+        s.nama_siswa.toLowerCase().includes(searchTerm.toLowerCase()) ||
         s.no_induk.toLowerCase().includes(searchTerm.toLowerCase())
     );
 
@@ -228,9 +228,9 @@ const AdminParent = () => {
                             {/* Account Credentials */}
                             <div className="space-y-6">
                                 <h3 className="text-lg font-black text-slate-800 border-l-4 border-[#000080] pl-3">Akses Akun</h3>
-                                
+
                                 <div className="space-y-2">
-                                    <label className="text-xs font-bold text-slate-500 uppercase tracking-wider">Nama Lengkap Orang Tua *</label>
+                                    <label className="text-xs font-bold text-slate-500 uppercase tracking-wider">Nama Lengkap Orang Tua <span className="text-red-500">*</span></label>
                                     <input
                                         type="text" name="nama" value={formData.nama} onChange={handleInputChange} required
                                         className="w-full bg-slate-50 border border-slate-200 text-slate-800 font-bold rounded-xl px-4 py-3 focus:ring-2 focus:ring-[#000080]/20 focus:border-[#000080] transition-colors"
@@ -262,7 +262,7 @@ const AdminParent = () => {
                             {/* Linked Children Selection */}
                             <div className="space-y-6">
                                 <h3 className="text-lg font-black text-slate-800 border-l-4 border-[#000080] pl-3">Hubungkan Anak (Siswa)</h3>
-                                
+
                                 <div className="relative">
                                     <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-slate-400">
                                         <Search size={16} />
@@ -278,14 +278,13 @@ const AdminParent = () => {
 
                                 <div className="border border-slate-200 rounded-2xl h-[280px] overflow-y-auto bg-slate-50/30 p-2 space-y-1">
                                     {filteredSiswa.map(s => (
-                                        <div 
+                                        <div
                                             key={s.id}
                                             onClick={() => toggleChild(s.id)}
-                                            className={`flex items-center justify-between p-3 rounded-xl border transition-all cursor-pointer ${
-                                                formData.child_ids.includes(s.id) 
-                                                ? 'bg-blue-50 border-blue-200 text-blue-700 shadow-sm' 
-                                                : 'bg-white border-transparent hover:border-slate-200 text-slate-600'
-                                            }`}
+                                            className={`flex items-center justify-between p-3 rounded-xl border transition-all cursor-pointer ${formData.child_ids.includes(s.id)
+                                                    ? 'bg-blue-50 border-blue-200 text-blue-700 shadow-sm'
+                                                    : 'bg-white border-transparent hover:border-slate-200 text-slate-600'
+                                                }`}
                                         >
                                             <div className="flex items-center gap-3">
                                                 <div className={`p-2 rounded-lg ${formData.child_ids.includes(s.id) ? 'bg-blue-100 text-blue-600' : 'bg-slate-100 text-slate-400'}`}>
@@ -296,9 +295,8 @@ const AdminParent = () => {
                                                     <p className="text-[10px] font-medium opacity-70">NIS: {s.no_induk} • Kelas: {s.nama_kelas}</p>
                                                 </div>
                                             </div>
-                                            <div className={`w-5 h-5 rounded-md border flex items-center justify-center transition-all ${
-                                                formData.child_ids.includes(s.id) ? 'bg-blue-600 border-blue-600 text-white' : 'bg-white border-slate-300'
-                                            }`}>
+                                            <div className={`w-5 h-5 rounded-md border flex items-center justify-center transition-all ${formData.child_ids.includes(s.id) ? 'bg-blue-600 border-blue-600 text-white' : 'bg-white border-slate-300'
+                                                }`}>
                                                 {formData.child_ids.includes(s.id) && <CheckCircle size={12} />}
                                             </div>
                                         </div>
@@ -333,75 +331,75 @@ const AdminParent = () => {
                             p.username.toLowerCase().includes(searchTerm.toLowerCase()) ||
                             (p.children && p.children.some(c => c.nama_siswa.toLowerCase().includes(searchTerm.toLowerCase())))
                         );
-                        
+
                         return filteredParents.map((p) => (
                             <div key={p.id} className="bg-white rounded-3xl border border-slate-200 shadow-sm hover:shadow-md transition-all overflow-hidden flex flex-col group">
-                            <div className="p-6 border-b border-slate-50 flex items-center justify-between">
-                                <div className="flex items-center gap-3">
-                                    <div className="bg-indigo-100 text-indigo-600 p-2.5 rounded-2xl group-hover:scale-110 transition-transform">
-                                        <Shield size={24} />
+                                <div className="p-6 border-b border-slate-50 flex items-center justify-between">
+                                    <div className="flex items-center gap-3">
+                                        <div className="bg-indigo-100 text-indigo-600 p-2.5 rounded-2xl group-hover:scale-110 transition-transform">
+                                            <Shield size={24} />
+                                        </div>
+                                        <div>
+                                            <h3 className="font-black text-slate-800 leading-tight">{p.nama}</h3>
+                                            <p className="text-xs font-bold text-slate-400">@{p.username}</p>
+                                        </div>
                                     </div>
-                                    <div>
-                                        <h3 className="font-black text-slate-800 leading-tight">{p.nama}</h3>
-                                        <p className="text-xs font-bold text-slate-400">@{p.username}</p>
+                                    <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                                        <button onClick={() => handleEdit(p)} className="p-2 text-blue-600 hover:bg-blue-50 rounded-lg" title="Edit">
+                                            <Edit2 size={16} />
+                                        </button>
+                                        <button onClick={() => handleDelete(p.id, p.nama)} className="p-2 text-rose-600 hover:bg-rose-50 rounded-lg" title="Hapus">
+                                            <Trash2 size={16} />
+                                        </button>
                                     </div>
                                 </div>
-                                <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                                    <button onClick={() => handleEdit(p)} className="p-2 text-blue-600 hover:bg-blue-50 rounded-lg" title="Edit">
-                                        <Edit2 size={16} />
-                                    </button>
-                                    <button onClick={() => handleDelete(p.id, p.nama)} className="p-2 text-rose-600 hover:bg-rose-50 rounded-lg" title="Hapus">
-                                        <Trash2 size={16} />
-                                    </button>
-                                </div>
-                            </div>
-                            <div className="p-6 bg-slate-50/50 flex-1">
-                                <div className="flex items-center gap-2 mb-3">
-                                    <Users size={14} className="text-slate-400" />
-                                    <span className="text-[10px] font-black uppercase tracking-wider text-slate-400 underline decoration-indigo-200 decoration-2 underline-offset-4">Anak Terhubung</span>
-                                </div>
-                                <div className="space-y-2">
-                                    {p.children && p.children.length > 0 ? (
-                                        p.children.map(c => {
-                                            // Determine status dot color
-                                            const adminViewSemester = localStorage.getItem('adminViewSemester');
-                                            let dotColor = 'bg-emerald-400'; // Default: Active
-                                            
-                                            if (c.status === 'alumni') {
-                                                dotColor = 'bg-slate-300'; // Alumni
-                                            } else if (c.nama_kelas && c.nama_kelas.startsWith('IX') && adminViewSemester === 'Genap') {
-                                                dotColor = 'bg-amber-400'; // Grade 9 Even (Restricted)
-                                            }
+                                <div className="p-6 bg-slate-50/50 flex-1">
+                                    <div className="flex items-center gap-2 mb-3">
+                                        <Users size={14} className="text-slate-400" />
+                                        <span className="text-[10px] font-black uppercase tracking-wider text-slate-400 underline decoration-indigo-200 decoration-2 underline-offset-4">Anak Terhubung</span>
+                                    </div>
+                                    <div className="space-y-2">
+                                        {p.children && p.children.length > 0 ? (
+                                            p.children.map(c => {
+                                                // Determine status dot color
+                                                const adminViewSemester = localStorage.getItem('adminViewSemester');
+                                                let dotColor = 'bg-emerald-400'; // Default: Active
 
-                                            return (
-                                                <div key={c.id} className="bg-white border border-slate-100 p-2.5 rounded-xl shadow-sm text-xs font-bold text-slate-700 flex items-center gap-2">
-                                                    <div className={`w-2 h-2 rounded-full ${dotColor}`}></div>
-                                                    <span>{c.nama_siswa}</span>
-                                                    <span className="text-[8px] bg-slate-100 px-1.5 py-0.5 rounded ml-auto">{c.nama_kelas}</span>
-                                                </div>
-                                            );
-                                        })
-                                    ) : (
-                                        <div className="text-xs italic text-slate-400 py-2">Belum ada anak yang dihubungkan</div>
-                                    )}
+                                                if (c.status === 'alumni') {
+                                                    dotColor = 'bg-slate-300'; // Alumni
+                                                } else if (c.nama_kelas && c.nama_kelas.startsWith('IX') && adminViewSemester === 'Genap') {
+                                                    dotColor = 'bg-amber-400'; // Grade 9 Even (Restricted)
+                                                }
+
+                                                return (
+                                                    <div key={c.id} className="bg-white border border-slate-100 p-2.5 rounded-xl shadow-sm text-xs font-bold text-slate-700 flex items-center gap-2">
+                                                        <div className={`w-2 h-2 rounded-full ${dotColor}`}></div>
+                                                        <span>{c.nama_siswa}</span>
+                                                        <span className="text-[8px] bg-slate-100 px-1.5 py-0.5 rounded ml-auto">{c.nama_kelas}</span>
+                                                    </div>
+                                                );
+                                            })
+                                        ) : (
+                                            <div className="text-xs italic text-slate-400 py-2">Belum ada anak yang dihubungkan</div>
+                                        )}
+                                    </div>
                                 </div>
                             </div>
-                        </div>
                         ));
                     })()}
-                    {parents.length > 0 && parents.filter(p => 
-                        p.nama.toLowerCase().includes(searchTerm.toLowerCase()) || 
-                        p.username.toLowerCase().includes(searchTerm.toLowerCase()) || 
+                    {parents.length > 0 && parents.filter(p =>
+                        p.nama.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                        p.username.toLowerCase().includes(searchTerm.toLowerCase()) ||
                         (p.children && p.children.some(c => c.nama_siswa.toLowerCase().includes(searchTerm.toLowerCase())))
                     ).length === 0 && (
-                        <div className="col-span-full py-20 text-center border-2 border-dashed border-slate-200 rounded-[40px] bg-white">
-                            <div className="w-20 h-20 bg-slate-50 rounded-full flex items-center justify-center mx-auto mb-4 text-slate-300">
-                                <Search size={40} />
+                            <div className="col-span-full py-20 text-center border-2 border-dashed border-slate-200 rounded-[40px] bg-white">
+                                <div className="w-20 h-20 bg-slate-50 rounded-full flex items-center justify-center mx-auto mb-4 text-slate-300">
+                                    <Search size={40} />
+                                </div>
+                                <h3 className="text-xl font-black text-slate-700 mb-2">Pencarian Tidak Ditemukan</h3>
+                                <p className="text-slate-500 font-medium max-w-sm mx-auto">Coba gunakan kata kunci lain.</p>
                             </div>
-                            <h3 className="text-xl font-black text-slate-700 mb-2">Pencarian Tidak Ditemukan</h3>
-                            <p className="text-slate-500 font-medium max-w-sm mx-auto">Coba gunakan kata kunci lain.</p>
-                        </div>
-                    )}
+                        )}
                     {parents.length === 0 && (
                         <div className="col-span-full py-20 text-center border-2 border-dashed border-slate-200 rounded-[40px] bg-white">
                             <div className="w-20 h-20 bg-slate-50 rounded-full flex items-center justify-center mx-auto mb-4 text-slate-300">

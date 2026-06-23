@@ -72,6 +72,7 @@ CREATE TABLE IF NOT EXISTS `absensi` (
   `id_pelatih` int(11) NOT NULL,
   `tanggal` date NOT NULL,
   `status` enum('Hadir','Izin','Sakit','Alfa') NOT NULL,
+  `is_final` tinyint(1) NOT NULL DEFAULT 0,
   PRIMARY KEY (`id`),
   FOREIGN KEY (`id_siswa`) REFERENCES `siswa`(`id`) ON DELETE CASCADE,
   FOREIGN KEY (`id_pelatih`) REFERENCES `pelatih`(`id`) ON DELETE CASCADE

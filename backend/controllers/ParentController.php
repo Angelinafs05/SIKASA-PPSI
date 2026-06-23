@@ -1,18 +1,20 @@
 <?php
 require_once __DIR__ . '/../config/database.php';
 
-class ParentController {
-    
+class ParentController
+{
+
     /**
      * Get list of children for the logged in parent
      */
-    public static function getChildren() {
+    public static function getChildren()
+    {
         $user = requireRole('orang_tua');
         $db = getDB();
-        
+
         $period = getActivePeriod();
         $tahun = $period['tahun_ajaran'];
-        
+
         try {
             $stmt = $db->prepare("
                 SELECT s.id, s.no_induk, s.nama_siswa, 
@@ -27,7 +29,7 @@ class ParentController {
             ");
             $stmt->execute([$tahun, $user->sub]);
             $children = $stmt->fetchAll();
-            
+
             echo json_encode(['success' => true, 'data' => $children]);
         } catch (PDOException $e) {
             http_response_code(500);
@@ -38,10 +40,11 @@ class ParentController {
     /**
      * Get attendance for a specific child
      */
-    public static function getChildAbsensi(int $siswa_id) {
+    public static function getChildAbsensi(int $siswa_id)
+    {
         $user = requireRole('orang_tua');
         $db = getDB();
-        
+
         if (!self::isChildOfParent($db, $user->sub, $siswa_id)) {
             errorResponse('Akses ditolak. Siswa bukan anak Anda.', 403);
             return;
@@ -67,10 +70,11 @@ class ParentController {
     /**
      * Get grades for a specific child
      */
-    public static function getChildNilai(int $siswa_id) {
+    public static function getChildNilai(int $siswa_id)
+    {
         $user = requireRole('orang_tua');
         $db = getDB();
-        
+
         if (!self::isChildOfParent($db, $user->sub, $siswa_id)) {
             errorResponse('Akses ditolak. Siswa bukan anak Anda.', 403);
             return;
@@ -108,10 +112,11 @@ class ParentController {
     /**
      * Get competitions for a specific child
      */
-    public static function getChildLomba(int $siswa_id) {
+    public static function getChildLomba(int $siswa_id)
+    {
         $user = requireRole('orang_tua');
         $db = getDB();
-        
+
         if (!self::isChildOfParent($db, $user->sub, $siswa_id)) {
             errorResponse('Akses ditolak. Siswa bukan anak Anda.', 403);
             return;
@@ -120,7 +125,10 @@ class ParentController {
         try {
             // Fix: Join peserta_lomba with lomba table
             $stmt = $db->prepare("
-                SELECT l.*, pl.status_izin, pl.alasan_tolak, pl.surat_balasan
+                SELECT l.*, 
+                       pl.id as peserta_id,
+                       pl.status_izin, pl.alasan_tolak, pl.surat_balasan,
+                       pl.parent_approval_status, pl.parent_approval_reason, pl.parent_approval_file, pl.parent_approval_date
                 FROM peserta_lomba pl
                 JOIN lomba l ON pl.lomba_id = l.id
                 WHERE pl.siswa_id = ?
@@ -136,10 +144,11 @@ class ParentController {
     /**
      * Get enrolled extracurriculars for a specific child
      */
-    public static function getChildEkskul(int $siswa_id) {
+    public static function getChildEkskul(int $siswa_id)
+    {
         $user = requireRole('orang_tua');
         $db = getDB();
-        
+
         if (!self::isChildOfParent($db, $user->sub, $siswa_id)) {
             errorResponse('Akses ditolak. Siswa bukan anak Anda.', 403);
             return;
@@ -173,7 +182,8 @@ class ParentController {
     /**
      * Helper: Check if siswa_id is child of parent_user_id
      */
-    private static function isChildOfParent($db, $parent_id, $siswa_id) {
+    private static function isChildOfParent($db, $parent_id, $siswa_id)
+    {
         $stmt = $db->prepare("SELECT 1 FROM orang_tua_siswa WHERE parent_user_id = ? AND siswa_id = ?");
         $stmt->execute([$parent_id, $siswa_id]);
         return $stmt->fetch() !== false;
@@ -182,20 +192,21 @@ class ParentController {
     /**
      * Get logged-in parent profile
      */
-    public static function getProfile() {
+    public static function getProfile()
+    {
         $user = requireRole('orang_tua');
         $db = getDB();
-        
+
         try {
             $stmt = $db->prepare("SELECT id, nama, username, role FROM users WHERE id = ?");
             $stmt->execute([$user->sub]);
             $profile = $stmt->fetch();
-            
+
             if (!$profile) {
                 errorResponse('Profil tidak ditemukan', 404);
                 return;
             }
-            
+
             successResponse($profile);
         } catch (PDOException $e) {
             errorResponse('Database error: ' . $e->getMessage(), 500);
@@ -205,11 +216,12 @@ class ParentController {
     /**
      * Update logged-in parent profile
      */
-    public static function updateProfile() {
+    public static function updateProfile()
+    {
         $user = requireRole('orang_tua');
         $db = getDB();
         $input = json_decode(file_get_contents('php://input'), true);
-        
+
         $nama = $input['nama'] ?? '';
         $username = $input['username'] ?? '';
         $newPassword = $input['password'] ?? '';
@@ -236,10 +248,86 @@ class ParentController {
                 $stmt = $db->prepare("UPDATE users SET nama = ?, username = ? WHERE id = ?");
                 $stmt->execute([$nama, $username, $user->sub]);
             }
-            
+
             successResponse(null, 'Profil berhasil diperbarui');
         } catch (PDOException $e) {
             errorResponse('Database error: ' . $e->getMessage(), 500);
+        }
+    }
+
+    /**
+     * Parent approve/reject competition participation
+     */
+    public static function approveLomba()
+    {
+        $user = requireRole('orang_tua');
+        $db = getDB();
+
+        $peserta_id = $_POST['peserta_id'] ?? null;
+        $status_approval = $_POST['status_approval'] ?? '';
+        $reason = $_POST['reason'] ?? null;
+
+        if (!$peserta_id || !in_array($status_approval, ['Disetujui', 'Ditolak'])) {
+            http_response_code(400);
+            echo json_encode(['success' => false, 'message' => 'Data tidak lengkap atau tidak valid']);
+            return;
+        }
+
+        if ($status_approval === 'Disetujui' && (!isset($_FILES['approval_file']) || $_FILES['approval_file']['error'] !== UPLOAD_ERR_OK)) {
+            http_response_code(400);
+            echo json_encode(['success' => false, 'message' => 'Upload surat persetujuan PDF/Gambar wajib saat menyetujui lomba']);
+            return;
+        }
+
+        if ($status_approval === 'Ditolak' && empty(trim($reason))) {
+            http_response_code(400);
+            echo json_encode(['success' => false, 'message' => 'Alasan penolakan wajib diisi']);
+            return;
+        }
+
+        try {
+            // Verify this peserta belongs to a child of this parent
+            $stmt = $db->prepare("
+                SELECT pl.id, pl.siswa_id
+                FROM peserta_lomba pl
+                WHERE pl.id = ?
+            ");
+            $stmt->execute([$peserta_id]);
+            $peserta = $stmt->fetch();
+
+            if (!$peserta || !self::isChildOfParent($db, $user->sub, $peserta['siswa_id'])) {
+                http_response_code(403);
+                echo json_encode(['success' => false, 'message' => 'Akses ditolak']);
+                return;
+            }
+
+            // Handle file upload
+            $approval_file = null;
+            if (isset($_FILES['approval_file']) && $_FILES['approval_file']['error'] === UPLOAD_ERR_OK) {
+                try {
+                    require_once __DIR__ . '/../helpers/UploadHelper.php';
+                    $approval_file = UploadHelper::upload($_FILES['approval_file'], 'persetujuan_lomba_orang_tua');
+                } catch (Exception $e) {
+                    http_response_code(400);
+                    echo json_encode(['success' => false, 'message' => $e->getMessage()]);
+                    return;
+                }
+            }
+
+            // Update peserta_lomba with parent approval
+            if ($approval_file) {
+                $updateStmt = $db->prepare("UPDATE peserta_lomba SET parent_approval_status = ?, parent_approval_reason = ?, parent_approval_file = ?, parent_approval_date = NOW() WHERE id = ?");
+                $updateStmt->execute([$status_approval, $reason, $approval_file, $peserta_id]);
+            } else {
+                $updateStmt = $db->prepare("UPDATE peserta_lomba SET parent_approval_status = ?, parent_approval_reason = ?, parent_approval_date = NOW() WHERE id = ?");
+                $updateStmt->execute([$status_approval, $reason, $peserta_id]);
+            }
+
+            http_response_code(200);
+            echo json_encode(['success' => true, 'message' => 'Persetujuan berhasil disimpan']);
+        } catch (PDOException $e) {
+            http_response_code(500);
+            echo json_encode(['success' => false, 'message' => 'Database error: ' . $e->getMessage()]);
         }
     }
 }

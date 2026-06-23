@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import {
-    Plus, Edit2, Trash2, Activity, UserPlus, ArrowLeft, Save, CheckCircle, 
+    Plus, Edit2, Trash2, Activity, UserPlus, ArrowLeft, Save, CheckCircle,
     Upload, Users, AlertTriangle, FileSpreadsheet, GraduationCap
 } from 'lucide-react';
 import api from '../../api/api';
@@ -10,10 +10,10 @@ const SiswaList = () => {
     const [siswaMaster, setSiswaMaster] = useState([]);
     const [kelases, setKelases] = useState([]);
     const [loading, setLoading] = useState(true);
-    
+
     // View state: 'list', 'form', 'import', 'promote'
-    const [activeView, setActiveView] = useState('list'); 
-    
+    const [activeView, setActiveView] = useState('list');
+
     const [isEditing, setIsEditing] = useState(false);
     const [submitting, setSubmitting] = useState(false);
     const [error, setError] = useState('');
@@ -24,20 +24,24 @@ const SiswaList = () => {
     const [formData, setFormData] = useState({
         nama_siswa: '', no_induk: '', tanggal_lahir: '', no_hp: '', kota: '', alamat: '',
         nama_ayah: '', pekerjaan_ayah: '', nama_ibu: '', pekerjaan_ibu: '', kelas_id: '',
-        username: '', password: ''
+        username: '', password: '',
+        parent_action: 'none', parent_id: '', nama_ortu: '', username_ortu: '', password_ortu: ''
     });
 
     // States for Import
     const [csvPreview, setCsvPreview] = useState([]);
-    
+
     // States for Promote
     const [promoteFromKelasId, setPromoteFromKelasId] = useState('');
     const [promoteToKelasId, setPromoteToKelasId] = useState('');
     const [selectedSiswaIds, setSelectedSiswaIds] = useState([]);
 
+    const [parents, setParents] = useState([]);
+
     useEffect(() => {
         fetchSiswa();
         fetchKelas();
+        fetchParents();
     }, [filterStatus]); // Re-fetch when status filter changes
 
     useEffect(() => {
@@ -52,7 +56,7 @@ const SiswaList = () => {
             if (response.data.success) {
                 setSiswaMaster(response.data.data);
             }
-        } catch (err) {}
+        } catch (err) { }
     };
 
     const fetchSiswa = async () => {
@@ -77,6 +81,15 @@ const SiswaList = () => {
         } catch (err) { }
     };
 
+    const fetchParents = async () => {
+        try {
+            const response = await api.get('/api/admin/parents');
+            if (response.data.success) {
+                setParents(response.data.data);
+            }
+        } catch (err) { }
+    };
+
     const handleBackToList = () => {
         setActiveView('list');
         setError('');
@@ -95,7 +108,8 @@ const SiswaList = () => {
         setFormData({
             nama_siswa: '', no_induk: '', tanggal_lahir: '', no_hp: '', kota: '', alamat: '',
             nama_ayah: '', pekerjaan_ayah: '', nama_ibu: '', pekerjaan_ibu: '', kelas_id: '',
-            username: '', password: ''
+            username: '', password: '',
+            parent_action: 'none', parent_id: '', nama_ortu: '', username_ortu: '', password_ortu: ''
         });
         setIsEditing(false);
         setError('');
@@ -123,7 +137,8 @@ const SiswaList = () => {
                     pekerjaan_ibu: data.pekerjaan_ibu || '',
                     kelas_id: data.kelas_id || '',
                     username: data.username || '',
-                    password: ''
+                    password: '',
+                    parent_action: 'none', parent_id: '', nama_ortu: '', username_ortu: '', password_ortu: ''
                 });
                 setIsEditing(true);
                 setActiveView('form');
@@ -181,7 +196,7 @@ const SiswaList = () => {
             const text = event.target.result;
             const rows = text.split('\n');
             const data = [];
-            
+
             // Skip header starting at row 1
             for (let i = 1; i < rows.length; i++) {
                 const parts = rows[i].split(',');
@@ -237,7 +252,7 @@ const SiswaList = () => {
 
     // --- KELAS PROMOTION LOGIC ---
     const toggleSiswaSelection = (id) => {
-        setSelectedSiswaIds(prev => 
+        setSelectedSiswaIds(prev =>
             prev.includes(id) ? prev.filter(item => item !== id) : [...prev, id]
         );
     };
@@ -256,7 +271,7 @@ const SiswaList = () => {
             setError('Pilih minimal satu siswa dan kelas tujuan');
             return;
         }
-        
+
         // Let's ask for confirmation
         const kelasTujuanName = kelases.find(k => k.id == promoteToKelasId)?.nama_kelas;
         if (!window.confirm(`Yakin memindahkan ${selectedSiswaIds.length} siswa ke kelas ${kelasTujuanName}?`)) {
@@ -314,7 +329,7 @@ const SiswaList = () => {
         ? siswa.filter(s => s.kelas_id === parseInt(filterKelas))
         : siswa;
 
-    const siswaToPromote = promoteFromKelasId 
+    const siswaToPromote = promoteFromKelasId
         ? siswaMaster.filter(s => s.kelas_id === parseInt(promoteFromKelasId))
         : [];
 
@@ -330,10 +345,10 @@ const SiswaList = () => {
             <div className="flex flex-col md:flex-row md:items-end justify-between gap-4 border-b border-slate-200 pb-6">
                 <div>
                     <h1 className="text-3xl font-extrabold text-[#000080] tracking-tight mb-1">
-                        {activeView === 'form' ? (isEditing ? 'Edit Data Siswa' : 'Tambah Siswa Baru') : 
-                         activeView === 'import' ? 'Import Data Siswa' :
-                         activeView === 'promote' ? 'Manajemen Kenaikan Kelas' :
-                         'Data Siswa'}
+                        {activeView === 'form' ? (isEditing ? 'Edit Data Siswa' : 'Tambah Siswa Baru') :
+                            activeView === 'import' ? 'Import Data Siswa' :
+                                activeView === 'promote' ? 'Manajemen Kenaikan Kelas' :
+                                    'Data Siswa'}
                     </h1>
                     <p className="text-slate-500 font-medium">
                         {activeView === 'list' && 'Kelola daftar siswa yang terdaftar di SIKASA'}
@@ -421,7 +436,7 @@ const SiswaList = () => {
                                 <h3 className="text-lg font-bold text-slate-800 border-l-4 border-[#000080] pl-3">Informasi Pribadi</h3>
 
                                 <div className="space-y-2">
-                                    <label className="text-sm font-bold text-slate-700">Nama Lengkap Siswa *</label>
+                                    <label className="text-sm font-bold text-slate-700">Nama Lengkap Siswa <span className="text-red-500">*</span></label>
                                     <input type="text" name="nama_siswa" value={formData.nama_siswa} onChange={handleInputChange} className="w-full px-4 py-3 rounded-xl border border-slate-200 focus:border-[#000080] outline-none font-medium" placeholder="Masukkan nama lengkap..." required />
                                 </div>
 
@@ -460,7 +475,7 @@ const SiswaList = () => {
                                     <textarea name="alamat" value={formData.alamat} onChange={handleInputChange} className="w-full px-4 py-3 rounded-xl border border-slate-200 focus:border-[#000080] outline-none font-medium" placeholder="Alamat lengkap..." rows="2"></textarea>
                                 </div>
 
-                                <h3 className="text-lg font-bold text-slate-800 border-l-4 border-[#000080] pl-3 mt-8">Data Orang Tua</h3>
+                                <h3 className="text-lg font-bold text-slate-800 border-l-4 border-[#000080] pl-3 mt-8">Profil Orang Tua (Opsional)</h3>
                                 <div className="grid grid-cols-2 gap-4">
                                     <div className="space-y-2"><label className="text-sm font-bold text-slate-700">Nama Ayah</label><input type="text" name="nama_ayah" value={formData.nama_ayah} onChange={handleInputChange} className="w-full px-4 py-3 rounded-xl border border-slate-200 focus:border-[#000080] outline-none font-medium" placeholder="Nama Ayah..." /></div>
                                     <div className="space-y-2"><label className="text-sm font-bold text-slate-700">Pekerjaan Ayah</label><input type="text" name="pekerjaan_ayah" value={formData.pekerjaan_ayah} onChange={handleInputChange} className="w-full px-4 py-3 rounded-xl border border-slate-200 focus:border-[#000080] outline-none font-medium" placeholder="Pekerjaan..." /></div>
@@ -469,6 +484,61 @@ const SiswaList = () => {
                                     <div className="space-y-2"><label className="text-sm font-bold text-slate-700">Nama Ibu</label><input type="text" name="nama_ibu" value={formData.nama_ibu} onChange={handleInputChange} className="w-full px-4 py-3 rounded-xl border border-slate-200 focus:border-[#000080] outline-none font-medium" placeholder="Nama Ibu..." /></div>
                                     <div className="space-y-2"><label className="text-sm font-bold text-slate-700">Pekerjaan Ibu</label><input type="text" name="pekerjaan_ibu" value={formData.pekerjaan_ibu} onChange={handleInputChange} className="w-full px-4 py-3 rounded-xl border border-slate-200 focus:border-[#000080] outline-none font-medium" placeholder="Pekerjaan..." /></div>
                                 </div>
+
+                                {!isEditing && (
+                                    <>
+                                        <h3 className="text-lg font-bold text-slate-800 border-l-4 border-[#000080] pl-3 mt-8">Integrasi Akun Orang Tua / Wali</h3>
+                                        <div className="space-y-4">
+                                            <div className="flex flex-wrap gap-4">
+                                                <label className="flex items-center gap-2 text-sm font-bold text-slate-600 cursor-pointer">
+                                                    <input type="radio" name="parent_action" value="none" checked={formData.parent_action === 'none'} onChange={handleInputChange} className="w-4 h-4 text-[#000080]" />
+                                                    Lewati
+                                                </label>
+                                                <label className="flex items-center gap-2 text-sm font-bold text-slate-600 cursor-pointer">
+                                                    <input type="radio" name="parent_action" value="create" checked={formData.parent_action === 'create'} onChange={handleInputChange} className="w-4 h-4 text-[#000080]" />
+                                                    Buat Akun Baru
+                                                </label>
+                                                <label className="flex items-center gap-2 text-sm font-bold text-slate-600 cursor-pointer">
+                                                    <input type="radio" name="parent_action" value="link" checked={formData.parent_action === 'link'} onChange={handleInputChange} className="w-4 h-4 text-[#000080]" />
+                                                    Pilih Akun Terdaftar
+                                                </label>
+                                            </div>
+
+                                            {formData.parent_action === 'create' && (
+                                                <div className="bg-slate-50 p-5 rounded-xl border border-slate-200 space-y-4 animate-in fade-in slide-in-from-top-2">
+                                                    <div className="space-y-2">
+                                                        <label className="text-sm font-bold text-slate-700">Nama Akun Orang Tua <span className="text-red-500">*</span></label>
+                                                        <input type="text" name="nama_ortu" value={formData.nama_ortu} onChange={handleInputChange} className="w-full px-4 py-3 rounded-xl border border-slate-200 focus:border-[#000080] outline-none font-medium" placeholder="Nama lengkap wali murid..." required={formData.parent_action === 'create'} />
+                                                    </div>
+                                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                                        <div className="space-y-2">
+                                                            <label className="text-sm font-bold text-slate-700">Username <span className="text-red-500">*</span></label>
+                                                            <input type="text" name="username_ortu" value={formData.username_ortu} onChange={handleInputChange} className="w-full px-4 py-3 rounded-xl border border-slate-200 focus:border-[#000080] outline-none font-medium" placeholder="username_login" required={formData.parent_action === 'create'} />
+                                                        </div>
+                                                        <div className="space-y-2">
+                                                            <label className="text-sm font-bold text-slate-700">Password <span className="text-red-500">*</span></label>
+                                                            <input type="password" name="password_ortu" value={formData.password_ortu} onChange={handleInputChange} className="w-full px-4 py-3 rounded-xl border border-slate-200 focus:border-[#000080] outline-none font-medium" placeholder="••••••••" required={formData.parent_action === 'create'} />
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            )}
+
+                                            {formData.parent_action === 'link' && (
+                                                <div className="bg-slate-50 p-5 rounded-xl border border-slate-200 space-y-4 animate-in fade-in slide-in-from-top-2">
+                                                    <div className="space-y-2">
+                                                        <label className="text-sm font-bold text-slate-700">Pilih Orang Tua Yang Sudah Terdaftar <span className="text-red-500">*</span></label>
+                                                        <select name="parent_id" value={formData.parent_id} onChange={handleInputChange} className="w-full px-4 py-3 rounded-xl border border-slate-200 focus:border-[#000080] outline-none font-medium bg-white" required={formData.parent_action === 'link'}>
+                                                            <option value="">-- Pilih Akun Wali --</option>
+                                                            {parents.map(p => (
+                                                                <option key={p.id} value={p.id}>{p.nama} (@{p.username})</option>
+                                                            ))}
+                                                        </select>
+                                                    </div>
+                                                </div>
+                                            )}
+                                        </div>
+                                    </>
+                                )}
                             </div>
                             <div className="space-y-6">
                                 <h3 className="text-lg font-bold text-slate-800 border-l-4 border-[#000080] pl-3">Informasi Akun</h3>
@@ -509,9 +579,9 @@ const SiswaList = () => {
                         </div>
 
                         <div className="border-2 border-dashed border-slate-300 rounded-xl p-8 text-center bg-slate-50">
-                            <input 
-                                type="file" 
-                                accept=".csv" 
+                            <input
+                                type="file"
+                                accept=".csv"
                                 onChange={handleFileUpload}
                                 className="block w-full text-sm text-slate-500 file:mr-4 file:py-3 file:px-6 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-[#000080] hover:file:bg-blue-100 cursor-pointer"
                             />
@@ -519,9 +589,9 @@ const SiswaList = () => {
 
                         {csvPreview.length > 0 && (
                             <div className="space-y-4 border-t border-slate-100 pt-6">
-                                <h4 className="font-bold text-emerald-600 flex items-center gap-2"><CheckCircle size={18}/> Berhasil membaca {csvPreview.length} baris!</h4>
-                                <button 
-                                    onClick={submitImport} 
+                                <h4 className="font-bold text-emerald-600 flex items-center gap-2"><CheckCircle size={18} /> Berhasil membaca {csvPreview.length} baris!</h4>
+                                <button
+                                    onClick={submitImport}
                                     disabled={submitting}
                                     className="bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-3 px-8 rounded-xl shadow-lg w-full md:w-auto"
                                 >
@@ -544,11 +614,11 @@ const SiswaList = () => {
                                 <h3 className="font-extrabold text-lg text-slate-800">Transfer Siswa</h3>
                                 <p className="text-xs text-slate-500 mt-1">Pilih kelas asal dan kelas tujuan untuk siswa. Siswa yang dicentang akan dipindahkan.</p>
                             </div>
-                            
+
                             <div className="space-y-1">
                                 <label className="text-xs font-bold text-slate-600 uppercase tracking-wider">Mulai dari (Kelas Asal)</label>
-                                <select 
-                                    value={promoteFromKelasId} 
+                                <select
+                                    value={promoteFromKelasId}
                                     onChange={(e) => { setPromoteFromKelasId(e.target.value); setSelectedSiswaIds([]); }}
                                     className="w-full border border-slate-300 rounded-xl px-4 py-3 bg-white font-bold text-slate-700 outline-none focus:border-[#000080]"
                                 >
@@ -561,8 +631,8 @@ const SiswaList = () => {
 
                             <div className="space-y-1">
                                 <label className="text-xs font-bold text-amber-600 uppercase tracking-wider">Dipindahkan ke (Kelas Tujuan)</label>
-                                <select 
-                                    value={promoteToKelasId} 
+                                <select
+                                    value={promoteToKelasId}
                                     onChange={(e) => setPromoteToKelasId(e.target.value)}
                                     className="w-full border-2 border-amber-300 rounded-xl px-4 py-3 bg-amber-50 font-bold text-amber-900 outline-none focus:border-amber-500"
                                 >
@@ -572,7 +642,7 @@ const SiswaList = () => {
                             </div>
 
                             <div className="mt-auto grid grid-cols-2 gap-3">
-                                <button 
+                                <button
                                     onClick={handleGraduate}
                                     disabled={submitting || selectedSiswaIds.length === 0}
                                     className="bg-slate-800 hover:bg-black disabled:bg-slate-300 disabled:text-slate-500 text-white font-bold py-3 rounded-xl shadow-md w-full flex items-center justify-center gap-2"
@@ -580,8 +650,8 @@ const SiswaList = () => {
                                 >
                                     <GraduationCap size={18} /> Luluskan
                                 </button>
-                                <button 
-                                    onClick={submitPromotion} 
+                                <button
+                                    onClick={submitPromotion}
                                     disabled={submitting || selectedSiswaIds.length === 0 || !promoteToKelasId}
                                     className="bg-amber-500 hover:bg-amber-600 disabled:bg-slate-300 disabled:text-slate-500 text-white font-bold py-3 rounded-xl shadow-md w-full"
                                 >
@@ -600,7 +670,7 @@ const SiswaList = () => {
                                 <div>
                                     <div className="flex justify-between items-center mb-4">
                                         <h4 className="font-bold text-slate-700">Daftar Siswa di Kelas Tersebut</h4>
-                                        <button 
+                                        <button
                                             onClick={handleSelectAllSiswaPromote}
                                             className="text-xs font-bold text-[#000080] bg-blue-50 px-3 py-1.5 rounded-lg hover:bg-blue-100"
                                         >
@@ -612,17 +682,16 @@ const SiswaList = () => {
                                     ) : (
                                         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                                             {siswaToPromote.map(s => (
-                                                <div 
-                                                    key={s.id} 
+                                                <div
+                                                    key={s.id}
                                                     onClick={() => toggleSiswaSelection(s.id)}
-                                                    className={`border rounded-xl p-4 flex items-center gap-3 cursor-pointer transition-colors ${
-                                                        selectedSiswaIds.includes(s.id) ? 'bg-blue-50 border-[#000080]' : 'border-slate-200 hover:bg-slate-50'
-                                                    }`}
+                                                    className={`border rounded-xl p-4 flex items-center gap-3 cursor-pointer transition-colors ${selectedSiswaIds.includes(s.id) ? 'bg-blue-50 border-[#000080]' : 'border-slate-200 hover:bg-slate-50'
+                                                        }`}
                                                 >
-                                                    <input 
-                                                        type="checkbox" 
+                                                    <input
+                                                        type="checkbox"
                                                         checked={selectedSiswaIds.includes(s.id)}
-                                                        onChange={() => {}} // handled by div click
+                                                        onChange={() => { }} // handled by div click
                                                         className="w-5 h-5 text-[#000080]"
                                                     />
                                                     <div>
@@ -672,7 +741,7 @@ const SiswaList = () => {
                                             </td>
                                             <td className="py-4 px-4">
                                                 {item.username ? (
-                                                    <span className="text-emerald-600 text-xs font-bold flex items-center gap-1"><CheckCircle size={14}/> Aktif</span>
+                                                    <span className="text-emerald-600 text-xs font-bold flex items-center gap-1"><CheckCircle size={14} /> Aktif</span>
                                                 ) : <span className="text-slate-400 text-xs italic">Tanpa Akun</span>}
                                             </td>
                                             <td className="py-4 px-6 text-center whitespace-nowrap">

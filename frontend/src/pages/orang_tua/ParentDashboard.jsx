@@ -44,6 +44,13 @@ const ParentDashboard = () => {
     const [selectedLomba, setSelectedLomba] = useState(null);
     const [isLombaModalOpen, setIsLombaModalOpen] = useState(false);
 
+    // Lomba Approval State
+    const [approvalStatus, setApprovalStatus] = useState('');
+    const [approvalReason, setApprovalReason] = useState('');
+    const [approvalFile, setApprovalFile] = useState(null);
+    const [submittingApproval, setSubmittingApproval] = useState(false);
+    const [approvalMessage, setApprovalMessage] = useState({ type: '', text: '' });
+
     const getFileUrl = (path) => {
         if (!path) return null;
         if (path.startsWith('http')) return path;
@@ -62,6 +69,11 @@ const ParentDashboard = () => {
 
     useEffect(() => {
         fetchChildren();
+        
+        // Auto-refresh setiap 15 detik untuk update realtime
+        const refreshInterval = setInterval(fetchChildren, 15000);
+        
+        return () => clearInterval(refreshInterval);
     }, []);
 
     const fetchChildren = async () => {
@@ -82,29 +94,44 @@ const ParentDashboard = () => {
         }
     };
 
-    const handleSelectChild = async (child) => {
-        setSelectedChild(child);
-        setDataLoading(true);
-        try {
-            const [absResp, nilResp, lomResp, eksResp] = await Promise.all([
-                api.get(`/api/parent/child/${child.id}/absensi`),
-                api.get(`/api/parent/child/${child.id}/nilai`),
-                api.get(`/api/parent/child/${child.id}/lomba`),
-                api.get(`/api/parent/child/${child.id}/ekskul`)
-            ]);
+    useEffect(() => {
+        if (!selectedChild) return;
+        
+        // Fetch child detail data
+        const fetchChildData = async () => {
+            setDataLoading(true);
+            try {
+                const [absResp, nilResp, lomResp, eksResp] = await Promise.all([
+                    api.get(`/api/parent/child/${selectedChild.id}/absensi`),
+                    api.get(`/api/parent/child/${selectedChild.id}/nilai`),
+                    api.get(`/api/parent/child/${selectedChild.id}/lomba`),
+                    api.get(`/api/parent/child/${selectedChild.id}/ekskul`)
+                ]);
 
-            setChildData({
-                absensi: absResp.data.data || [],
-                nilai: nilResp.data.data || [],
-                lomba: lomResp.data.data || [],
-                ekskul: eksResp.data.data || []
-            });
-        } catch (err) {
-            console.error('Gagal mengambil detail data anak');
-        } finally {
-            setDataLoading(false);
-            window.scrollTo({ top: 0, behavior: 'smooth' });
-        }
+                setChildData({
+                    absensi: absResp.data.data || [],
+                    nilai: nilResp.data.data || [],
+                    lomba: lomResp.data.data || [],
+                    ekskul: eksResp.data.data || []
+                });
+            } catch (err) {
+                console.error('Gagal mengambil detail data anak');
+            } finally {
+                setDataLoading(false);
+            }
+        };
+        
+        fetchChildData();
+        
+        // Auto-refresh child data setiap 15 detik
+        const refreshInterval = setInterval(fetchChildData, 15000);
+        
+        return () => clearInterval(refreshInterval);
+    }, [selectedChild]);
+
+    const handleSelectChild = (child) => {
+        setSelectedChild(child);
+        window.scrollTo({ top: 0, behavior: 'smooth' });
     };
 
     const handleWithdrawSubmit = async (e) => {
@@ -140,6 +167,53 @@ const ParentDashboard = () => {
             alert(err.response?.data?.message || 'Gagal mengirim permohonan');
         } finally {
             setSubmittingWithdrawal(false);
+        }
+    };
+
+    const handleLombaApprovalSubmit = async (e) => {
+        e.preventDefault();
+        if (!approvalStatus) {
+            setApprovalMessage({ type: 'error', text: 'Silakan pilih status persetujuan' });
+            return;
+        }
+
+        if (approvalStatus === 'Disetujui' && !approvalFile) {
+            setApprovalMessage({ type: 'error', text: 'Unggah surat persetujuan PDF/Gambar wajib saat menyetujui lomba' });
+            return;
+        }
+
+        if (approvalStatus === 'Ditolak' && !approvalReason) {
+            setApprovalMessage({ type: 'error', text: 'Silakan tuliskan alasan penolakan' });
+            return;
+        }
+
+        setSubmittingApproval(true);
+        const formData = new FormData();
+        formData.append('peserta_id', selectedLomba.peserta_id);
+        formData.append('status_approval', approvalStatus);
+        if (approvalReason) formData.append('reason', approvalReason);
+        if (approvalFile) formData.append('approval_file', approvalFile);
+
+        try {
+            const response = await api.post('/api/parent/lomba/approve', formData, {
+                headers: { 'Content-Type': 'multipart/form-data' }
+            });
+
+            if (response.data.success) {
+                setApprovalMessage({ type: 'success', text: 'Persetujuan berhasil disimpan' });
+                setApprovalStatus('');
+                setApprovalReason('');
+                setApprovalFile(null);
+                handleSelectChild(selectedChild);
+                setTimeout(() => {
+                    setApprovalMessage({ type: '', text: '' });
+                    setIsLombaModalOpen(false);
+                }, 2000);
+            }
+        } catch (err) {
+            setApprovalMessage({ type: 'error', text: err.response?.data?.message || 'Terjadi kesalahan' });
+        } finally {
+            setSubmittingApproval(false);
         }
     };
 
@@ -319,44 +393,45 @@ const ParentDashboard = () => {
 
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                 {childData.lomba.length > 0 ? (
-                                    childData.lomba.map((lom, idx) => (
-                                        <div key={idx} className="bg-slate-50 border border-slate-100 rounded-2xl p-4 flex flex-col gap-3 group hover:bg-amber-50/30 transition-colors">
-                                            <div className="flex justify-between items-start">
-                                                <div className="bg-amber-100 text-amber-600 p-2 rounded-xl"><Trophy size={18} /></div>
-                                                <div className="flex flex-col items-end gap-1">
-                                                     {lom.status_izin === 'Disetujui' ? (
-                                                        <span className="text-[9px] font-bold text-emerald-600 bg-emerald-100 px-2 py-0.5 rounded-full">DISETUJUI</span>
-                                                     ) : (
-                                                        <span className="text-[9px] font-bold text-slate-400 bg-slate-200 px-2 py-0.5 rounded-full">{lom.status_izin.toUpperCase()}</span>
-                                                     )}
+                                    childData.lomba.map((lom, idx) => {
+                                        const parentApprovalStatus = lom.parent_approval_status || 'Menunggu';
+                                        return (
+                                            <div key={idx} className="bg-slate-50 border border-slate-100 rounded-2xl p-4 flex flex-col gap-3 group hover:bg-amber-50/30 transition-colors">
+                                                <div className="flex justify-between items-start">
+                                                    <div className="bg-amber-100 text-amber-600 p-2 rounded-xl"><Trophy size={18} /></div>
+                                                    <div className="flex flex-col items-end gap-1">
+                                                        {parentApprovalStatus === 'Disetujui' ? (
+                                                            <span className="text-[9px] font-bold text-emerald-600 bg-emerald-100 px-2 py-0.5 rounded-full">DISETUJUI</span>
+                                                        ) : (
+                                                            <span className="text-[9px] font-bold text-slate-400 bg-slate-200 px-2 py-0.5 rounded-full">{parentApprovalStatus.toUpperCase()}</span>
+                                                        )}
+                                                    </div>
+                                                </div>
+                                                <div>
+                                                    <h4 className="font-black text-slate-800 leading-tight mb-1">{lom.nama_lomba}</h4>
+                                                    <p className="text-[10px] font-bold text-slate-400 uppercase">{lom.tempat} • {new Date(lom.tanggal_pelaksanaan).toLocaleDateString('id-ID', {day:'numeric', month:'short', year:'numeric'})}</p>
+                                                </div>
+                                                <div className="flex items-center justify-between mt-auto pt-2 border-t border-slate-100 group-hover:border-amber-100 transition-colors">
+                                                    {lom.prestasi ? (
+                                                        <span className="text-[10px] font-black text-amber-600 bg-amber-100 px-2.5 py-1 rounded-lg flex items-center gap-1">
+                                                            🏅 {lom.prestasi}
+                                                        </span>
+                                                    ) : (
+                                                        <span className="text-[10px] font-bold text-slate-400 bg-slate-100 px-2.5 py-1 rounded-lg">Peserta</span>
+                                                    )}
+                                                    <button 
+                                                        onClick={() => {
+                                                            setSelectedLomba(lom);
+                                                            setIsLombaModalOpen(true);
+                                                        }}
+                                                        className="text-[10px] font-black text-[#000080] hover:underline flex items-center gap-1"
+                                                    >
+                                                        Detail <ChevronRight size={12} />
+                                                    </button>
                                                 </div>
                                             </div>
-                                            <div>
-                                                <h4 className="font-black text-slate-800 leading-tight mb-1">{lom.nama_lomba}</h4>
-                                                <p className="text-[10px] font-bold text-slate-400 uppercase">{lom.tempat} • {new Date(lom.tanggal_pelaksanaan).toLocaleDateString('id-ID', {day:'numeric', month:'short', year:'numeric'})}</p>
-                                            </div>
-                                            
-                                            <div className="flex items-center justify-between mt-auto pt-2 border-t border-slate-100 group-hover:border-amber-100 transition-colors">
-                                                {lom.prestasi ? (
-                                                    <span className="text-[10px] font-black text-amber-600 bg-amber-100 px-2.5 py-1 rounded-lg flex items-center gap-1">
-                                                        🏅 {lom.prestasi}
-                                                    </span>
-                                                ) : (
-                                                    <span className="text-[10px] font-bold text-slate-400 bg-slate-100 px-2.5 py-1 rounded-lg">Peserta</span>
-                                                )}
-                                                
-                                                <button 
-                                                    onClick={() => {
-                                                        setSelectedLomba(lom);
-                                                        setIsLombaModalOpen(true);
-                                                    }}
-                                                    className="text-[10px] font-black text-[#000080] hover:underline flex items-center gap-1"
-                                                >
-                                                    Detail <ChevronRight size={12} />
-                                                </button>
-                                            </div>
-                                        </div>
-                                    ))
+                                        );
+                                    })
                                 ) : (
                                     <div className="col-span-full py-10 text-center text-slate-400 italic">Anak belum mengikuti agenda lomba</div>
                                 )}
@@ -749,6 +824,101 @@ const ParentDashboard = () => {
                                     </div>
                                 </div>
                             )}
+
+                            {/* PARENT APPROVAL SECTION */}
+                            <div className="border-t border-slate-100 pt-8">
+                                <div className="space-y-4">
+                                    <div>
+                                        <p className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] mb-3">Persetujuan Orang Tua</p>
+                                        {selectedLomba.parent_approval_status && selectedLomba.parent_approval_status !== 'Menunggu' ? (
+                                            <div className={`p-4 rounded-2xl border ${selectedLomba.parent_approval_status === 'Disetujui' ? 'bg-emerald-50 border-emerald-100' : 'bg-rose-50 border-rose-100'}`}>
+                                                <div className="flex items-start gap-3">
+                                                    {selectedLomba.parent_approval_status === 'Disetujui' ? (
+                                                        <CheckCircle size={20} className="text-emerald-600 shrink-0 mt-0.5" />
+                                                    ) : (
+                                                        <XCircle size={20} className="text-rose-600 shrink-0 mt-0.5" />
+                                                    )}
+                                                    <div className="flex-1">
+                                                        <p className={`font-bold ${selectedLomba.parent_approval_status === 'Disetujui' ? 'text-emerald-700' : 'text-rose-700'}`}>
+                                                            {selectedLomba.parent_approval_status === 'Disetujui' ? 'Disetujui oleh Orang Tua' : 'Ditolak oleh Orang Tua'}
+                                                        </p>
+                                                        {selectedLomba.parent_approval_reason && (
+                                                            <p className={`text-sm mt-1 ${selectedLomba.parent_approval_status === 'Disetujui' ? 'text-emerald-600' : 'text-rose-600'}`}>
+                                                                Alasan: {selectedLomba.parent_approval_reason}
+                                                            </p>
+                                                        )}
+                                                        {selectedLomba.parent_approval_file && (
+                                                            <a href={getFileUrl(selectedLomba.parent_approval_file)} target="_blank" rel="noopener noreferrer" className="text-xs font-bold text-blue-600 hover:underline mt-2 inline-block">
+                                                                Lihat Dokumen Persetujuan
+                                                            </a>
+                                                        )}
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        ) : (
+                                            <form onSubmit={handleLombaApprovalSubmit} className="mt-4 space-y-4 p-4 bg-slate-50 rounded-2xl border border-slate-100">
+                                                {approvalMessage.text && (
+                                                    <div className={`p-3 rounded-xl text-sm font-bold ${approvalMessage.type === 'error' ? 'bg-rose-50 text-rose-600 border border-rose-100' : 'bg-emerald-50 text-emerald-600 border border-emerald-100'}`}>
+                                                        {approvalMessage.text}
+                                                    </div>
+                                                )}
+
+                                                <div className="grid gap-3 md:grid-cols-2">
+                                                    <button 
+                                                        type="button"
+                                                        onClick={() => { setApprovalStatus('Ditolak'); setApprovalReason(''); setApprovalFile(null); }}
+                                                        className={`w-full py-3 rounded-2xl font-bold text-sm transition-all ${approvalStatus === 'Ditolak' ? 'bg-rose-600 text-white' : 'bg-white border border-slate-200 text-slate-600 hover:border-rose-300 hover:bg-rose-50'}`}
+                                                    >
+                                                        ✗ Tolak
+                                                    </button>
+                                                    <button 
+                                                        type="button"
+                                                        onClick={() => { setApprovalStatus('Disetujui'); setApprovalReason(''); }}
+                                                        className={`w-full py-3 rounded-2xl font-bold text-sm transition-all ${approvalStatus === 'Disetujui' ? 'bg-emerald-600 text-white' : 'bg-white border border-slate-200 text-slate-600 hover:border-emerald-300 hover:bg-emerald-50'}`}
+                                                    >
+                                                        ✓ Setuju
+                                                    </button>
+                                                </div>
+
+                                                {approvalStatus === 'Ditolak' && (
+                                                    <div className="space-y-2">
+                                                        <label className="text-xs font-bold text-slate-600 uppercase tracking-wider">Alasan Penolakan *</label>
+                                                        <textarea 
+                                                            value={approvalReason}
+                                                            onChange={(e) => setApprovalReason(e.target.value)}
+                                                            rows="2"
+                                                            className="w-full bg-white border border-slate-200 text-slate-700 font-semibold rounded-xl px-3 py-2 text-sm"
+                                                            placeholder="Jelaskan alasan penolakan..."
+                                                        />
+                                                    </div>
+                                                )}
+
+                                                {approvalStatus === 'Disetujui' && (
+                                                    <div className="space-y-2">
+                                                        <label className="text-xs font-bold text-slate-600 uppercase tracking-wider">Upload Surat Persetujuan (PDF/Gambar) - Wajib</label>
+                                                        <input
+                                                            type="file"
+                                                            accept=".pdf,image/*"
+                                                            onChange={(e) => setApprovalFile(e.target.files?.[0] || null)}
+                                                            className="w-full text-sm text-slate-600 file:mr-2 file:py-2 file:px-3 file:rounded-lg file:border-0 file:text-xs file:font-bold file:bg-blue-50 file:text-blue-600 hover:file:bg-blue-100"
+                                                        />
+                                                    </div>
+                                                )}
+
+                                                <div className="flex flex-col gap-3 pt-2">
+                                                    <button 
+                                                        type="submit"
+                                                        disabled={submittingApproval || !approvalStatus}
+                                                        className="w-full bg-[#000080] text-white font-bold py-3 rounded-2xl hover:bg-[#000066] transition-all text-sm disabled:opacity-50"
+                                                    >
+                                                        {submittingApproval ? 'Menyimpan...' : 'Simpan Persetujuan'}
+                                                    </button>
+                                                </div>
+                                            </form>
+                                        )}
+                                    </div>
+                                </div>
+                            </div>
                         </div>
 
                         <div className="p-6 bg-slate-50 border-t border-slate-100 shrink-0">

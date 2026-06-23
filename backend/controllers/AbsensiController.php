@@ -7,6 +7,25 @@
 class AbsensiController
 {
 
+    private static function hasAbsensiColumn(PDO $db, string $column): bool
+    {
+        static $cache = [];
+        $cacheKey = $column;
+        if (array_key_exists($cacheKey, $cache)) {
+            return $cache[$cacheKey];
+        }
+
+        try {
+            $stmt = $db->prepare("SHOW COLUMNS FROM absensi LIKE :col");
+            $stmt->execute([':col' => $column]);
+            $cache[$cacheKey] = (bool) $stmt->fetch();
+        } catch (PDOException $e) {
+            $cache[$cacheKey] = false;
+        }
+
+        return $cache[$cacheKey];
+    }
+
     /**
      * GET /api/pelatih/absensi?tanggal=YYYY-MM-DD
      */
@@ -86,19 +105,30 @@ class AbsensiController
             $period = getActivePeriod();
             $tahun  = $period['tahun_ajaran'];
             $sem    = $period['semester'];
+            $hasFinal = self::hasAbsensiColumn($db, 'is_final');
 
             // Cek apakah sudah ada
             $cek = $db->prepare("SELECT id FROM absensi WHERE id_siswa = :sid AND tanggal = :tgl AND tahun_ajaran = :tahun AND semester = :sem");
             $cek->execute([':sid' => $siswaId, ':tgl' => $tanggal, ':tahun' => $tahun, ':sem' => $sem]);
 
             if ($cek->fetch()) {
-                // Update
-                $db->prepare("UPDATE absensi SET status = :status WHERE id_siswa = :sid AND tanggal = :tgl AND tahun_ajaran = :tahun AND semester = :sem")
-                    ->execute([':status' => $status, ':sid' => $siswaId, ':tgl' => $tanggal, ':tahun' => $tahun, ':sem' => $sem]);
+                // Update and finalize teacher input
+                if ($hasFinal) {
+                    $db->prepare("UPDATE absensi SET status = :status, id_pelatih = :pid, is_final = 1 WHERE id_siswa = :sid AND tanggal = :tgl AND tahun_ajaran = :tahun AND semester = :sem")
+                        ->execute([':status' => $status, ':pid' => $idPelatih, ':sid' => $siswaId, ':tgl' => $tanggal, ':tahun' => $tahun, ':sem' => $sem]);
+                } else {
+                    $db->prepare("UPDATE absensi SET status = :status, id_pelatih = :pid WHERE id_siswa = :sid AND tanggal = :tgl AND tahun_ajaran = :tahun AND semester = :sem")
+                        ->execute([':status' => $status, ':pid' => $idPelatih, ':sid' => $siswaId, ':tgl' => $tanggal, ':tahun' => $tahun, ':sem' => $sem]);
+                }
             } else {
-                // Insert
-                $db->prepare("INSERT INTO absensi (id_siswa, id_pelatih, tanggal, status, tahun_ajaran, semester) VALUES (:sid, :pid, :tgl, :status, :tahun, :sem)")
-                    ->execute([':sid' => $siswaId, ':pid' => $idPelatih, ':tgl' => $tanggal, ':status' => $status, ':tahun' => $tahun, ':sem' => $sem]);
+                // Insert and finalize teacher input
+                if ($hasFinal) {
+                    $db->prepare("INSERT INTO absensi (id_siswa, id_pelatih, tanggal, status, tahun_ajaran, semester, is_final) VALUES (:sid, :pid, :tgl, :status, :tahun, :sem, 1)")
+                        ->execute([':sid' => $siswaId, ':pid' => $idPelatih, ':tgl' => $tanggal, ':status' => $status, ':tahun' => $tahun, ':sem' => $sem]);
+                } else {
+                    $db->prepare("INSERT INTO absensi (id_siswa, id_pelatih, tanggal, status, tahun_ajaran, semester) VALUES (:sid, :pid, :tgl, :status, :tahun, :sem)")
+                        ->execute([':sid' => $siswaId, ':pid' => $idPelatih, ':tgl' => $tanggal, ':status' => $status, ':tahun' => $tahun, ':sem' => $sem]);
+                }
             }
         }
 
@@ -226,18 +256,29 @@ class AbsensiController
 
             if (!in_array($status, $validStatus)) continue;
 
+            $hasFinal = self::hasAbsensiColumn($db, 'is_final');
             // Cek apakah sudah ada
             $cek = $db->prepare("SELECT id FROM absensi WHERE id_siswa = :sid AND tanggal = :tgl AND tahun_ajaran = :tahun AND semester = :sem");
             $cek->execute([':sid' => $siswaId, ':tgl' => $tanggal, ':tahun' => $tahun, ':sem' => $sem]);
 
             if ($cek->fetch()) {
-                // Update
-                $db->prepare("UPDATE absensi SET status = :status WHERE id_siswa = :sid AND tanggal = :tgl AND tahun_ajaran = :tahun AND semester = :sem")
-                    ->execute([':status' => $status, ':sid' => $siswaId, ':tgl' => $tanggal, ':tahun' => $tahun, ':sem' => $sem]);
+                // Update and finalize teacher input
+                if ($hasFinal) {
+                    $db->prepare("UPDATE absensi SET status = :status, id_pelatih = :pid, is_final = 1 WHERE id_siswa = :sid AND tanggal = :tgl AND tahun_ajaran = :tahun AND semester = :sem")
+                        ->execute([':status' => $status, ':pid' => $idPelatih, ':sid' => $siswaId, ':tgl' => $tanggal, ':tahun' => $tahun, ':sem' => $sem]);
+                } else {
+                    $db->prepare("UPDATE absensi SET status = :status, id_pelatih = :pid WHERE id_siswa = :sid AND tanggal = :tgl AND tahun_ajaran = :tahun AND semester = :sem")
+                        ->execute([':status' => $status, ':pid' => $idPelatih, ':sid' => $siswaId, ':tgl' => $tanggal, ':tahun' => $tahun, ':sem' => $sem]);
+                }
             } else {
-                // Insert
-                $db->prepare("INSERT INTO absensi (id_siswa, id_pelatih, tanggal, status, tahun_ajaran, semester) VALUES (:sid, :pid, :tgl, :status, :tahun, :sem)")
-                    ->execute([':sid' => $siswaId, ':pid' => $idPelatih, ':tgl' => $tanggal, ':status' => $status, ':tahun' => $tahun, ':sem' => $sem]);
+                // Insert and finalize teacher input
+                if ($hasFinal) {
+                    $db->prepare("INSERT INTO absensi (id_siswa, id_pelatih, tanggal, status, tahun_ajaran, semester, is_final) VALUES (:sid, :pid, :tgl, :status, :tahun, :sem, 1)")
+                        ->execute([':sid' => $siswaId, ':pid' => $idPelatih, ':tgl' => $tanggal, ':status' => $status, ':tahun' => $tahun, ':sem' => $sem]);
+                } else {
+                    $db->prepare("INSERT INTO absensi (id_siswa, id_pelatih, tanggal, status, tahun_ajaran, semester) VALUES (:sid, :pid, :tgl, :status, :tahun, :sem)")
+                        ->execute([':sid' => $siswaId, ':pid' => $idPelatih, ':tgl' => $tanggal, ':status' => $status, ':tahun' => $tahun, ':sem' => $sem]);
+                }
             }
         }
 
@@ -310,26 +351,86 @@ class AbsensiController
         $tahun = $period['tahun_ajaran'];
         $sem = $period['semester'];
 
-        // Upload
-        require_once 'helpers/UploadHelper.php';
-        $uploadPath = UploadHelper::upload($_FILES['surat_ijin'], 'public/uploads/izin');
-        if (!$uploadPath) {
-            errorResponse('Gagal mengunggah surat izin. Pastikan format file benar (JPG, PNG, PDF).', 400);
-        }
+        $hasFinal = self::hasAbsensiColumn($db, 'is_final');
+        $selectColumns = $hasFinal ? 'id, surat_ijin, is_final' : 'id, surat_ijin';
 
         // Cek absensi
-        $cek = $db->prepare("SELECT id FROM absensi WHERE id_siswa = :sid AND tanggal = :tgl AND tahun_ajaran = :tahun AND semester = :sem");
+        $cek = $db->prepare("SELECT {$selectColumns} FROM absensi WHERE id_siswa = :sid AND tanggal = :tgl AND tahun_ajaran = :tahun AND semester = :sem");
         $cek->execute([':sid' => $siswaId, ':tgl' => $tanggal, ':tahun' => $tahun, ':sem' => $sem]);
+        $existing = $cek->fetch();
 
-        if ($cek->fetch()) {
-            $db->prepare("UPDATE absensi SET status = 'Izin', keterangan = :ket, surat_ijin = :file WHERE id_siswa = :sid AND tanggal = :tgl AND tahun_ajaran = :tahun AND semester = :sem")
-                ->execute([':ket' => $keterangan, ':file' => $uploadPath, ':sid' => $siswaId, ':tgl' => $tanggal, ':tahun' => $tahun, ':sem' => $sem]);
+        if ($existing && $hasFinal && $existing['is_final']) {
+            errorResponse('Surat izin sudah final dan tidak dapat diubah', 400);
+        }
+
+        $uploadPath = null;
+        if (!empty($_FILES['surat_ijin']) && $_FILES['surat_ijin']['error'] === UPLOAD_ERR_OK) {
+            require_once 'helpers/UploadHelper.php';
+            $uploadPath = UploadHelper::upload($_FILES['surat_ijin'], 'public/uploads/izin');
+            if (!$uploadPath) {
+                errorResponse('Gagal mengunggah surat izin. Pastikan format file benar (JPG, PNG, PDF).', 400);
+            }
+        }
+
+        if ($existing) {
+            $filePath = $uploadPath ?: $existing['surat_ijin'];
+            if (!$filePath) {
+                errorResponse('Surat izin wajib diunggah', 400);
+            }
+            if ($hasFinal) {
+                $db->prepare("UPDATE absensi SET status = 'Izin', keterangan = :ket, surat_ijin = :file, is_final = 0 WHERE id_siswa = :sid AND tanggal = :tgl AND tahun_ajaran = :tahun AND semester = :sem")
+                    ->execute([':ket' => $keterangan, ':file' => $filePath, ':sid' => $siswaId, ':tgl' => $tanggal, ':tahun' => $tahun, ':sem' => $sem]);
+            } else {
+                $db->prepare("UPDATE absensi SET status = 'Izin', keterangan = :ket, surat_ijin = :file WHERE id_siswa = :sid AND tanggal = :tgl AND tahun_ajaran = :tahun AND semester = :sem")
+                    ->execute([':ket' => $keterangan, ':file' => $filePath, ':sid' => $siswaId, ':tgl' => $tanggal, ':tahun' => $tahun, ':sem' => $sem]);
+            }
         } else {
-            $db->prepare("INSERT INTO absensi (id_siswa, id_pelatih, tanggal, status, keterangan, surat_ijin, tahun_ajaran, semester) VALUES (:sid, :pid, :tgl, 'Izin', :ket, :file, :tahun, :sem)")
-                ->execute([':sid' => $siswaId, ':pid' => $idPelatih, ':tgl' => $tanggal, ':ket' => $keterangan, ':file' => $uploadPath, ':tahun' => $tahun, ':sem' => $sem]);
+            if (!$uploadPath) {
+                errorResponse('Surat izin wajib diunggah', 400);
+            }
+            if ($hasFinal) {
+                $db->prepare("INSERT INTO absensi (id_siswa, id_pelatih, tanggal, status, keterangan, surat_ijin, tahun_ajaran, semester, is_final) VALUES (:sid, :pid, :tgl, 'Izin', :ket, :file, :tahun, :sem, 0)")
+                    ->execute([':sid' => $siswaId, ':pid' => $idPelatih, ':tgl' => $tanggal, ':ket' => $keterangan, ':file' => $uploadPath, ':tahun' => $tahun, ':sem' => $sem]);
+            } else {
+                $db->prepare("INSERT INTO absensi (id_siswa, id_pelatih, tanggal, status, keterangan, surat_ijin, tahun_ajaran, semester) VALUES (:sid, :pid, :tgl, 'Izin', :ket, :file, :tahun, :sem)")
+                    ->execute([':sid' => $siswaId, ':pid' => $idPelatih, ':tgl' => $tanggal, ':ket' => $keterangan, ':file' => $uploadPath, ':tahun' => $tahun, ':sem' => $sem]);
+            }
         }
 
         successResponse(null, 'Surat izin berhasil dikirim', 201);
+    }
+
+    public static function siswaIzinDetail(): void
+    {
+        $user = requireRole('siswa');
+        $db = getDB();
+
+        $ekskulId = $_GET['ekskul_id'] ?? null;
+        $tanggal = $_GET['tanggal'] ?? null;
+
+        if (!$ekskulId || !$tanggal) {
+            errorResponse('Ekstrakurikuler dan tanggal harus diberikan', 400);
+        }
+
+        $period = getActivePeriod();
+        $tahun = $period['tahun_ajaran'];
+        $sem = $period['semester'];
+
+        $hasFinal = self::hasAbsensiColumn($db, 'is_final');
+        $selectFinal = $hasFinal ? 'a.is_final' : '0 AS is_final';
+
+        $stmt = $db->prepare("SELECT a.tanggal, a.status, a.keterangan, a.surat_ijin, {$selectFinal}
+            FROM absensi a
+            JOIN pelatih p ON a.id_pelatih = p.id
+            WHERE a.id_siswa = :sid
+              AND a.tanggal = :tgl
+              AND a.tahun_ajaran = :tahun
+              AND a.semester = :sem
+              AND p.ekskul_id = :eid");
+        $stmt->execute([':sid' => $user->ref_id, ':tgl' => $tanggal, ':tahun' => $tahun, ':sem' => $sem, ':eid' => $ekskulId]);
+
+        $data = $stmt->fetch();
+        successResponse(['izin' => $data ?: null]);
     }
 
     public static function guruIzin(): void
@@ -373,68 +474,181 @@ class AbsensiController
         $tahun = $period['tahun_ajaran'];
         $sem = $period['semester'];
 
-        // Get approved ekskuls for this student
-        $stmt_e = $db->prepare("
-            SELECT e.id, e.nama_ekskul, p.nama_pelatih
-            FROM pendaftaran_ekskul pe
-            JOIN ekstrakurikuler e ON pe.ekskul_id = e.id
-            LEFT JOIN (
-                SELECT p_sub.id, p_sub.nama_pelatih, p_sub.guru_id, e_sub.nama_ekskul
-                FROM pelatih p_sub
-                JOIN ekstrakurikuler e_sub ON p_sub.ekskul_id = e_sub.id
-            ) p ON p.nama_ekskul = e.nama_ekskul
-            WHERE pe.siswa_id = :sid AND pe.status = 'approved' AND pe.tahun_ajaran = :t AND pe.semester = :s
-        ");
-        $stmt_e->execute([':sid' => $siswaId, ':t' => $tahun, ':s' => $sem]);
-        $ekskuls = $stmt_e->fetchAll();
-
-        $result = [];
-        foreach ($ekskuls as $e) {
-            $eid = $e['id'];
-
-            // Get stats for this ekskul
-            $stmt_stats = $db->prepare("
-                SELECT 
-                    SUM(CASE WHEN status = 'Hadir' THEN 1 ELSE 0 END) as hadir,
-                    SUM(CASE WHEN status = 'Izin' THEN 1 ELSE 0 END) as izin,
-                    SUM(CASE WHEN status = 'Sakit' THEN 1 ELSE 0 END) as sakit,
-                    SUM(CASE WHEN status = 'Alfa' THEN 1 ELSE 0 END) as alfa
-                FROM absensi
-                WHERE id_siswa = :sid AND id_pelatih IN (SELECT p_sub.id FROM pelatih p_sub JOIN ekstrakurikuler e_sub ON p_sub.ekskul_id = e_sub.id WHERE e_sub.nama_ekskul = (SELECT nama_ekskul FROM ekstrakurikuler WHERE id = :eid))
-                  AND tahun_ajaran = :t AND semester = :s
+        try {
+            // Get approved ekskuls for this student
+            $stmt_e = $db->prepare("
+                SELECT e.id, e.nama_ekskul
+                FROM pendaftaran_ekskul pe
+                JOIN ekstrakurikuler e ON pe.ekskul_id = e.id
+                WHERE pe.siswa_id = :sid AND pe.status = 'approved' AND pe.tahun_ajaran = :t AND pe.semester = :s
             ");
-            $stmt_stats->execute([':sid' => $siswaId, ':eid' => $eid, ':t' => $tahun, ':s' => $sem]);
-            $stats = $stmt_stats->fetch();
+            $stmt_e->execute([':sid' => $siswaId, ':t' => $tahun, ':s' => $sem]);
+            $ekskuls = $stmt_e->fetchAll();
 
-            // Get detail log
-            $stmt_log = $db->prepare("
-                SELECT tanggal, status, keterangan
-                FROM absensi
-                WHERE id_siswa = :sid AND id_pelatih IN (SELECT p_sub.id FROM pelatih p_sub JOIN ekstrakurikuler e_sub ON p_sub.ekskul_id = e_sub.id WHERE e_sub.nama_ekskul = (SELECT nama_ekskul FROM ekstrakurikuler WHERE id = :eid))
-                  AND tahun_ajaran = :t AND semester = :s
-                ORDER BY tanggal DESC
-            ");
-            $stmt_log->execute([':sid' => $siswaId, ':eid' => $eid, ':t' => $tahun, ':s' => $sem]);
-            $logs = $stmt_log->fetchAll();
+            $result = [];
+            foreach ($ekskuls as $e) {
+                $eid = $e['id'];
 
-            $result[] = [
-                'ekskul_id' => $eid,
-                'nama_ekskul' => $e['nama_ekskul'],
-                'nama_pelatih' => $e['nama_pelatih'],
-                'stats' => [
-                    'hadir' => (int)($stats['hadir'] ?? 0),
-                    'izin' => (int)($stats['izin'] ?? 0),
-                    'sakit' => (int)($stats['sakit'] ?? 0),
-                    'alfa' => (int)($stats['alfa'] ?? 0),
-                ],
-                'logs' => $logs
-            ];
+                // Get pelatih for this ekskul
+                $stmt_p = $db->prepare("SELECT p.nama_pelatih FROM pelatih p WHERE p.ekskul_id = :eid LIMIT 1");
+                $stmt_p->execute([':eid' => $eid]);
+                $pelatih = $stmt_p->fetch();
+                $nama_pelatih = $pelatih['nama_pelatih'] ?? '-';
+
+                // Get stats for this ekskul
+                $stmt_stats = $db->prepare("
+                    SELECT 
+                        SUM(CASE WHEN status = 'Hadir' THEN 1 ELSE 0 END) as hadir,
+                        SUM(CASE WHEN status = 'Izin' THEN 1 ELSE 0 END) as izin,
+                        SUM(CASE WHEN status = 'Sakit' THEN 1 ELSE 0 END) as sakit,
+                        SUM(CASE WHEN status = 'Alfa' THEN 1 ELSE 0 END) as alfa
+                    FROM absensi a
+                    JOIN pelatih p ON a.id_pelatih = p.id
+                    WHERE a.id_siswa = :sid AND p.ekskul_id = :eid
+                      AND a.tahun_ajaran = :t AND a.semester = :s
+                ");
+                $stmt_stats->execute([':sid' => $siswaId, ':eid' => $eid, ':t' => $tahun, ':s' => $sem]);
+                $stats = $stmt_stats->fetch();
+
+                // Get detail log
+                $hasFinal = self::hasAbsensiColumn($db, 'is_final');
+                $selectFinal = $hasFinal ? 'a.is_final' : '0 AS is_final';
+
+                $stmt_log = $db->prepare("
+                    SELECT a.tanggal, a.status, a.keterangan, {$selectFinal}, :eid1 as ekskul_id
+                    FROM absensi a
+                    JOIN pelatih p ON a.id_pelatih = p.id
+                    WHERE a.id_siswa = :sid AND p.ekskul_id = :eid2
+                      AND a.tahun_ajaran = :t AND a.semester = :s
+                    ORDER BY a.tanggal DESC
+                ");
+                $stmt_log->execute([':sid' => $siswaId, ':eid1' => $eid, ':eid2' => $eid, ':t' => $tahun, ':s' => $sem]);
+                $logs = $stmt_log->fetchAll();
+
+                $result[] = [
+                    'ekskul_id' => $eid,
+                    'nama_ekskul' => $e['nama_ekskul'],
+                    'nama_pelatih' => $nama_pelatih,
+                    'stats' => [
+                        'hadir' => (int)($stats['hadir'] ?? 0),
+                        'izin' => (int)($stats['izin'] ?? 0),
+                        'sakit' => (int)($stats['sakit'] ?? 0),
+                        'alfa' => (int)($stats['alfa'] ?? 0),
+                    ],
+                    'logs' => $logs
+                ];
+            }
+
+            successResponse([
+                'kehadiran' => $result,
+                'semester' => $sem,
+                'tahun' => $tahun
+            ]);
+        } catch (Exception $e) {
+            errorResponse('Gagal mengambil data kehadiran: ' . $e->getMessage(), 500);
+        }
+    }
+
+    /**
+     * PUT /api/siswa/izin/ubah-status
+     * Body: ekskul_id, tanggal, new_status (Sakit|Alfa)
+     */
+    public static function updateIzinStatus(): void
+    {
+        $user = requireRole('siswa');
+        $db = getDB();
+
+        $input = json_decode(file_get_contents('php://input'), true);
+        $ekskulId = $input['ekskul_id'] ?? null;
+        $tanggal = $input['tanggal'] ?? null;
+        $newStatus = $input['new_status'] ?? null;
+        $siswaId = $user->ref_id;
+
+        if (!$ekskulId || !$tanggal || !$newStatus) {
+            errorResponse('Ekstrakurikuler, tanggal, dan status baru harus diberikan', 400);
         }
 
-        successResponse([
-            'kehadiran' => $result,
-            'semester' => $sem,
-            'tahun' => $tahun
-        ]);
+        if (!in_array($newStatus, ['Sakit', 'Alfa', 'Hadir'])) {
+            errorResponse('Status harus Sakit, Alfa, atau Hadir', 400);
+        }
+
+        $period = getActivePeriod();
+        $tahun = $period['tahun_ajaran'];
+        $sem = $period['semester'];
+
+        $hasFinal = self::hasAbsensiColumn($db, 'is_final');
+
+        // Cek apakah ada absensi dengan status Izin
+        $cek = $db->prepare("SELECT id FROM absensi WHERE id_siswa = :sid AND tanggal = :tgl AND tahun_ajaran = :tahun AND semester = :sem AND status = 'Izin'");
+        $cek->execute([':sid' => $siswaId, ':tgl' => $tanggal, ':tahun' => $tahun, ':sem' => $sem]);
+        $existing = $cek->fetch();
+
+        if (!$existing) {
+            errorResponse('Izin tidak ditemukan', 404);
+        }
+
+        // Cek apakah final
+        if ($hasFinal) {
+            $cekFinal = $db->prepare("SELECT is_final FROM absensi WHERE id = :id");
+            $cekFinal->execute([':id' => $existing['id']]);
+            $row = $cekFinal->fetch();
+            if ($row && $row['is_final']) {
+                errorResponse('Izin sudah final dan tidak dapat diubah', 400);
+            }
+        }
+
+        // Update status
+        $db->prepare("UPDATE absensi SET status = :status WHERE id = :id")
+            ->execute([':status' => $newStatus, ':id' => $existing['id']]);
+
+        successResponse(null, 'Status izin berhasil diubah menjadi ' . $newStatus, 200);
+    }
+
+    /**
+     * DELETE /api/siswa/izin/batalkan
+     * Query: ekskul_id, tanggal
+     */
+    public static function cancelIzin(): void
+    {
+        $user = requireRole('siswa');
+        $db = getDB();
+
+        $ekskulId = $_GET['ekskul_id'] ?? null;
+        $tanggal = $_GET['tanggal'] ?? null;
+        $siswaId = $user->ref_id;
+
+        if (!$ekskulId || !$tanggal) {
+            errorResponse('Ekstrakurikuler dan tanggal harus diberikan', 400);
+        }
+
+        $period = getActivePeriod();
+        $tahun = $period['tahun_ajaran'];
+        $sem = $period['semester'];
+
+        $hasFinal = self::hasAbsensiColumn($db, 'is_final');
+
+        // Cek apakah ada absensi dengan status Izin
+        $cek = $db->prepare("SELECT id FROM absensi WHERE id_siswa = :sid AND tanggal = :tgl AND tahun_ajaran = :tahun AND semester = :sem AND status = 'Izin'");
+        $cek->execute([':sid' => $siswaId, ':tgl' => $tanggal, ':tahun' => $tahun, ':sem' => $sem]);
+        $existing = $cek->fetch();
+
+        if (!$existing) {
+            errorResponse('Izin tidak ditemukan', 404);
+        }
+
+        // Cek apakah final
+        if ($hasFinal) {
+            $cekFinal = $db->prepare("SELECT is_final FROM absensi WHERE id = :id");
+            $cekFinal->execute([':id' => $existing['id']]);
+            $row = $cekFinal->fetch();
+            if ($row && $row['is_final']) {
+                errorResponse('Izin sudah final dan tidak dapat dibatalkan', 400);
+            }
+        }
+
+        // Hapus record izin
+        $db->prepare("DELETE FROM absensi WHERE id = :id")->execute([':id' => $existing['id']]);
+
+        successResponse(null, 'Izin berhasil dibatalkan', 200);
     }
 }

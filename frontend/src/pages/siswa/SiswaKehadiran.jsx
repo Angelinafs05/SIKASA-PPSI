@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { 
     ClipboardCheck, 
     Calendar, 
@@ -17,14 +18,19 @@ const SiswaKehadiran = () => {
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState('');
     const [period, setPeriod] = useState({ semester: '', tahun: '' });
+    const navigate = useNavigate();
 
     useEffect(() => {
         fetchKehadiran();
+        
+        // Auto-refresh setiap 10 detik untuk update realtime
+        const refreshInterval = setInterval(fetchKehadiran, 10000);
+        
+        return () => clearInterval(refreshInterval);
     }, []);
 
     const fetchKehadiran = async () => {
         try {
-            setLoading(true);
             const response = await api.get('/api/siswa/kehadiran');
             if (response.data.success) {
                 const resData = response.data.data;
@@ -33,9 +39,13 @@ const SiswaKehadiran = () => {
                     semester: resData.semester,
                     tahun: resData.tahun
                 });
+                setError(''); // Clear error on success
+            } else {
+                setError(response.data.message || 'Gagal mengambil data kehadiran');
             }
         } catch (err) {
             setError('Gagal mengambil data kehadiran. Silakan coba lagi nanti.');
+            console.error('Error fetching kehadiran:', err);
         } finally {
             setLoading(false);
         }
@@ -155,11 +165,20 @@ const SiswaKehadiran = () => {
                                                         <td className="px-6 py-4 text-sm font-bold text-slate-700">
                                                             {log.tanggal ? new Date(log.tanggal).toLocaleDateString('id-ID', { day: '2-digit', month: 'long', year: 'numeric' }) : '-'}
                                                         </td>
-                                                        <td className="px-6 py-4">
+                                                        <td className="px-6 py-4 space-y-2">
                                                             <div className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-wider ${style.bg} ${style.color}`}>
                                                                 {style.icon}
                                                                 {log.status}
                                                             </div>
+                                                            {log.status === 'Izin' && !log.is_final && log.ekskul_id && (
+                                                                <button
+                                                                    type="button"
+                                                                    onClick={() => navigate(`/siswa/izin/${log.ekskul_id}?date=${log.tanggal}`)}
+                                                                    className="mt-2 inline-flex items-center gap-2 rounded-full bg-blue-50 text-blue-700 px-3 py-1 text-[11px] font-bold uppercase tracking-[0.15em] hover:bg-blue-100 transition"
+                                                                >
+                                                                    Edit Izin
+                                                                </button>
+                                                            )}
                                                         </td>
                                                         <td className="px-6 py-4 text-sm font-medium text-slate-500 italic">
                                                             {log.keterangan || '-'}

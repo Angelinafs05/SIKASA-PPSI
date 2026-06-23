@@ -254,7 +254,12 @@ class DashboardController
         $stmtSiswa->execute([':sid' => $sid]);
         $siswa = $stmtSiswa->fetch();
 
-        $isAlumni = ($siswa['status'] === 'alumni');
+        $isAlumni = false;
+        $currKelas = null;
+        if ($siswa) {
+            $isAlumni = (($siswa['status'] ?? '') === 'alumni');
+            $currKelas = $siswa['nama_kelas'] ?? null;
+        }
 
         if ($isAlumni) {
             successResponse([
@@ -269,8 +274,10 @@ class DashboardController
             return;
         }
 
-        $currKelas = $siswa['nama_kelas'];
-        $isClass9Genap = ($s === 'Genap' && $currKelas && strpos($currKelas, 'IX') === 0);
+        $isClass9Genap = false;
+        if ($s === 'Genap' && $currKelas && strpos($currKelas, 'IX') === 0) {
+            $isClass9Genap = true;
+        }
 
         if ($isClass9Genap) {
             successResponse([

@@ -198,6 +198,38 @@ class SiswaController {
                 ]);
             }
             
+            // Integrasi Pembuatan Akun Orang Tua
+            $parentAction = $data['parent_action'] ?? 'none';
+            if ($parentAction === 'create') {
+                $pUsername = trim($data['username_ortu'] ?? '');
+                $pPassword = trim($data['password_ortu'] ?? '');
+                $pNama = trim($data['nama_ortu'] ?? '');
+                
+                if (!empty($pUsername) && !empty($pPassword) && !empty($pNama)) {
+                    // Check duplicate parent username
+                    $checkP = $db->prepare("SELECT id FROM users WHERE username = ?");
+                    $checkP->execute([$pUsername]);
+                    if ($checkP->fetch()) {
+                        $db->rollBack();
+                        errorResponse("Username orang tua '$pUsername' sudah digunakan", 400);
+                    }
+                    $pHashed = password_hash($pPassword, PASSWORD_DEFAULT);
+                    $stmtP = $db->prepare("INSERT INTO users (nama, username, password, role) VALUES (?, ?, ?, 'orang_tua')");
+                    $stmtP->execute([$pNama, $pUsername, $pHashed]);
+                    $parentId = $db->lastInsertId();
+                    
+                    // Link to this student
+                    $stmtLink = $db->prepare("INSERT INTO orang_tua_siswa (parent_user_id, siswa_id) VALUES (?, ?)");
+                    $stmtLink->execute([$parentId, $siswaId]);
+                }
+            } elseif ($parentAction === 'link') {
+                $parentIdExisting = $data['parent_id'] ?? null;
+                if ($parentIdExisting) {
+                    $stmtLink = $db->prepare("INSERT INTO orang_tua_siswa (parent_user_id, siswa_id) VALUES (?, ?)");
+                    $stmtLink->execute([$parentIdExisting, $siswaId]);
+                }
+            }
+            
             $db->commit();
             successResponse(['id' => (int) $siswaId], 'Siswa berhasil ditambahkan', 201);
         } catch (Exception $e) {

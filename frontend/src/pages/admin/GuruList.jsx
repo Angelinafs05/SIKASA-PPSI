@@ -182,41 +182,41 @@ const GuruList = () => {
                     </p>
                 </div>
                 <div className="relative z-10 flex items-center gap-4">
-                {!showForm && (
-                    <div className="flex flex-col lg:flex-row lg:items-center justify-end gap-4 flex-1">
-                        {/* SEARCH BOX */}
-                        <div className="relative w-full lg:w-72 group">
-                            <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
-                                <Search className="h-5 w-5 text-slate-400 group-focus-within:text-[#000080] transition-colors" />
+                    {!showForm && (
+                        <div className="flex flex-col lg:flex-row lg:items-center justify-end gap-4 flex-1">
+                            {/* SEARCH BOX */}
+                            <div className="relative w-full lg:w-72 group">
+                                <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
+                                    <Search className="h-5 w-5 text-slate-400 group-focus-within:text-[#000080] transition-colors" />
+                                </div>
+                                <input
+                                    type="text"
+                                    placeholder="Cari nama, NIP, atau kode..."
+                                    value={searchTerm}
+                                    onChange={(e) => setSearchTerm(e.target.value)}
+                                    className="block w-full pl-11 pr-4 py-3 bg-white border border-slate-200 rounded-2xl leading-5 focus:outline-none focus:ring-4 focus:ring-blue-50 focus:border-[#000080] transition-all duration-200 font-medium text-slate-700 shadow-sm"
+                                />
                             </div>
-                            <input
-                                type="text"
-                                placeholder="Cari nama, NIP, atau kode..."
-                                value={searchTerm}
-                                onChange={(e) => setSearchTerm(e.target.value)}
-                                className="block w-full pl-11 pr-4 py-3 bg-white border border-slate-200 rounded-2xl leading-5 focus:outline-none focus:ring-4 focus:ring-blue-50 focus:border-[#000080] transition-all duration-200 font-medium text-slate-700 shadow-sm"
-                            />
-                        </div>
 
-                        <div className="flex items-center gap-3">
-                            <button
-                                type="button"
-                                onClick={(e) => { e.stopPropagation(); alert('Fitur import akan segera hadir'); }}
-                                className="bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-2 px-6 rounded-xl flex items-center gap-2 shadow-md transition-all active:scale-95 cursor-pointer whitespace-nowrap"
-                            >
-                                <Upload size={18} className="pointer-events-none" />
-                                Import
-                            </button>
-                            <button
-                                type="button"
-                                onClick={(e) => { e.stopPropagation(); resetForm(); setShowForm(true); }}
-                                className="bg-[#000080] hover:bg-[#000066] text-white font-bold py-2 px-6 rounded-xl flex items-center gap-2 shadow-md transition-all active:scale-95 cursor-pointer whitespace-nowrap"
-                            >
-                                <UserPlus size={18} className="pointer-events-none" />
-                                Tambah Guru
-                            </button>
+                            <div className="flex items-center gap-3">
+                                <button
+                                    type="button"
+                                    onClick={(e) => { e.stopPropagation(); alert('Fitur import akan segera hadir'); }}
+                                    className="bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-2 px-6 rounded-xl flex items-center gap-2 shadow-md transition-all active:scale-95 cursor-pointer whitespace-nowrap"
+                                >
+                                    <Upload size={18} className="pointer-events-none" />
+                                    Import
+                                </button>
+                                <button
+                                    type="button"
+                                    onClick={(e) => { e.stopPropagation(); resetForm(); setShowForm(true); }}
+                                    className="bg-[#000080] hover:bg-[#000066] text-white font-bold py-2 px-6 rounded-xl flex items-center gap-2 shadow-md transition-all active:scale-95 cursor-pointer whitespace-nowrap"
+                                >
+                                    <UserPlus size={18} className="pointer-events-none" />
+                                    Tambah Guru
+                                </button>
+                            </div>
                         </div>
-                    </div>
                     )}
                 </div>
             </div>
@@ -253,7 +253,7 @@ const GuruList = () => {
                                 <h3 className="text-lg font-bold text-slate-800 border-l-4 border-[#000080] pl-3">Informasi Pribadi</h3>
 
                                 <div className="space-y-2">
-                                    <label className="text-sm font-bold text-slate-700">Nama Lengkap Guru *</label>
+                                    <label className="text-sm font-bold text-slate-700">Nama Lengkap Guru <span className="text-red-600">*</span></label>
                                     <input
                                         type="text"
                                         name="nama_guru"

@@ -718,9 +718,9 @@ const LombaList = () => {
                                                         <td className="px-6 py-4">{p.kelas}</td>
                                                         <td className="px-6 py-4">
                                                             <div className="flex flex-col items-start gap-1">
-                                                                {renderStatusBadge(p.status_izin)}
-                                                                {p.status_izin === 'Ditolak' && p.alasan_tolak && (
-                                                                    <span className="text-[10px] text-rose-500 italic max-w-[150px] truncate" title={p.alasan_tolak}>Alasan: {p.alasan_tolak}</span>
+                                                                {renderStatusBadge(p.parent_approval_status)}
+                                                                {p.parent_approval_status === 'Ditolak' && p.parent_approval_reason && (
+                                                                    <span className="text-[10px] text-rose-500 italic max-w-[150px] truncate" title={p.parent_approval_reason}>Alasan: {p.parent_approval_reason}</span>
                                                                 )}
                                                             </div>
                                                         </td>

@@ -1,15 +1,21 @@
 import React, { useState, useEffect } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
-import { Trophy, Calendar, Clock, MapPin, User, Upload, CheckCircle2, AlertCircle, ArrowLeft, FileText } from 'lucide-react';
+import { useParams, useNavigate, useLocation } from 'react-router-dom';
+import { Trophy, Calendar, Clock, MapPin, User, Upload, CheckCircle2, AlertCircle, ArrowLeft, FileText, Trash2, AlertTriangle } from 'lucide-react';
 import api from '../../api/api';
 
 const SiswaIzinForm = () => {
     const { id } = useParams(); // id is ekskul_id
     const navigate = useNavigate();
+    const location = useLocation();
     const [ekskul, setEkskul] = useState(null);
     const [loading, setLoading] = useState(true);
     const [submitting, setSubmitting] = useState(false);
     const [error, setError] = useState('');
+    const [isFinal, setIsFinal] = useState(false);
+    const [editMode, setEditMode] = useState(false);
+    const [existingFileUrl, setExistingFileUrl] = useState('');
+    const [showConfirmDialog, setShowConfirmDialog] = useState(false);
+    const [confirmAction, setConfirmAction] = useState(null); // 'sakit' | 'batalkan'
 
     // Form fields
     const [tanggal, setTanggal] = useState('');
@@ -17,11 +23,23 @@ const SiswaIzinForm = () => {
     const [file, setFile] = useState(null);
     const [preview, setPreview] = useState(null);
 
+    const searchParams = new URLSearchParams(location.search);
+    const dateParam = searchParams.get('date') ?? '';
+
     useEffect(() => {
-        // We can fetch ekskul detail by ID. 
+        // We can fetch ekskul detail by ID.
         // Note: the existing endpoint /api/siswa/ekskul/:id works for getting ekskul details.
         fetchEkskulDetail();
     }, [id]);
+
+    useEffect(() => {
+        if (id && dateParam) {
+            fetchIzinDetail();
+        } else {
+            setEditMode(false);
+            setIsFinal(false);
+        }
+    }, [id, dateParam]);
 
     const fetchEkskulDetail = async () => {
         try {
@@ -35,6 +53,43 @@ const SiswaIzinForm = () => {
             setError('Terjadi kesalahan koneksi');
         } finally {
             setLoading(false);
+        }
+    };
+
+    const fetchIzinDetail = async () => {
+        if (!dateParam) {
+            setEditMode(false);
+            return;
+        }
+
+        try {
+            const response = await api.get('/api/siswa/izin', {
+                params: { ekskul_id: id, tanggal: dateParam }
+            });
+
+            if (response.data.success) {
+                const izin = response.data.data?.izin;
+                if (izin) {
+                    setEditMode(true);
+                    setIsFinal(Boolean(Number(izin.is_final || 0)));
+                    setTanggal(izin.tanggal || dateParam);
+                    setKeterangan(izin.keterangan || '');
+                    if (izin.surat_ijin) {
+                        const rootUrl = api.defaults.baseURL.replace(/\/backend\/?$/, '');
+                        const normalizedPath = izin.surat_ijin.replace(/^\/+/, '');
+                        setExistingFileUrl(`${rootUrl}/${normalizedPath}`);
+                    }
+                } else {
+                    setEditMode(false);
+                    setIsFinal(false);
+                    setTanggal(dateParam);
+                    setKeterangan('');
+                    setExistingFileUrl('');
+                }
+            }
+        } catch (err) {
+            console.error(err);
+            setError('Gagal memuat data izin');
         }
     };
 
@@ -56,7 +111,7 @@ const SiswaIzinForm = () => {
             setError('Harap lengkapi tanggal dan asalan izin');
             return;
         }
-        if (!file) {
+        if (!file && !existingFileUrl) {
             setError('Harap unggah surat izin / bukti');
             return;
         }
@@ -69,7 +124,9 @@ const SiswaIzinForm = () => {
             formData.append('ekskul_id', id);
             formData.append('tanggal', tanggal);
             formData.append('keterangan', keterangan);
-            formData.append('surat_ijin', file);
+            if (file) {
+                formData.append('surat_ijin', file);
+            }
 
             const response = await api.post('/api/siswa/izin', formData);
 
@@ -83,6 +140,54 @@ const SiswaIzinForm = () => {
             setError(err.response?.data?.message || 'Terjadi kesalahan saat mengirim izin');
         } finally {
             setSubmitting(false);
+        }
+    };
+
+    const handleUpdateStatus = async (newStatus) => {
+        try {
+            setSubmitting(true);
+            setError('');
+
+            const response = await api.put('/api/siswa/izin/ubah-status', {
+                ekskul_id: id,
+                tanggal: tanggal,
+                new_status: newStatus
+            });
+
+            if (response.data.success) {
+                alert(`Status izin berhasil diubah menjadi ${newStatus}!`);
+                navigate('/siswa');
+            } else {
+                setError(response.data.message || `Gagal mengubah status menjadi ${newStatus}`);
+            }
+        } catch (err) {
+            setError(err.response?.data?.message || 'Terjadi kesalahan saat mengubah status');
+        } finally {
+            setSubmitting(false);
+            setShowConfirmDialog(false);
+        }
+    };
+
+    const handleCancel = async () => {
+        try {
+            setSubmitting(true);
+            setError('');
+
+            const response = await api.delete('/api/siswa/izin/batalkan', {
+                params: { ekskul_id: id, tanggal: tanggal }
+            });
+
+            if (response.data.success) {
+                alert('Izin berhasil dibatalkan!');
+                navigate('/siswa');
+            } else {
+                setError(response.data.message || 'Gagal membatalkan izin');
+            }
+        } catch (err) {
+            setError(err.response?.data?.message || 'Terjadi kesalahan saat membatalkan izin');
+        } finally {
+            setSubmitting(false);
+            setShowConfirmDialog(false);
         }
     };
 
@@ -175,10 +280,19 @@ const SiswaIzinForm = () => {
                             <FileText size={32} />
                         </div>
 
-                        <h1 className="text-2xl font-black text-slate-800 tracking-tight text-center">Form Pengajuan Izin</h1>
-                        <p className="text-slate-500 font-medium max-w-md mt-2 mb-8 text-center">
+                        <h1 className="text-2xl font-black text-slate-800 tracking-tight text-center">
+                            {editMode ? 'Edit Pengajuan Izin' : 'Form Pengajuan Izin'}
+                        </h1>
+                        <p className="text-slate-500 font-medium max-w-md mt-2 mb-4 text-center">
                             Lengkapi form di bawah ini dan unggah foto **Surat Izin** / bukti ketidakhadiranmu.
                         </p>
+
+                        {isFinal && (
+                            <div className="w-full bg-amber-50 text-amber-800 p-4 rounded-2xl flex items-center gap-3 border border-amber-100 mb-6 text-left">
+                                <AlertCircle size={20} className="shrink-0" />
+                                <p className="text-sm font-bold">Izin ini sudah final dan tidak dapat diubah.</p>
+                            </div>
+                        )}
 
                         {error && (
                             <div className="w-full bg-red-50 text-red-600 p-4 rounded-2xl flex items-center gap-3 border border-red-100 mb-6 text-left">
@@ -195,7 +309,8 @@ const SiswaIzinForm = () => {
                                     required
                                     value={tanggal}
                                     onChange={(e) => setTanggal(e.target.value)}
-                                    className="w-full px-4 py-3 rounded-xl border border-slate-200 focus:outline-none focus:border-orange-500 focus:ring-1 focus:ring-orange-500 transition-all font-medium text-slate-700 bg-slate-50 focus:bg-white"
+                                    disabled={isFinal}
+                                    className="w-full px-4 py-3 rounded-xl border border-slate-200 focus:outline-none focus:border-orange-500 focus:ring-1 focus:ring-orange-500 transition-all font-medium text-slate-700 bg-slate-50 focus:bg-white disabled:cursor-not-allowed disabled:bg-slate-100"
                                 />
                             </div>
                             <div>
@@ -205,8 +320,9 @@ const SiswaIzinForm = () => {
                                     required
                                     value={keterangan}
                                     onChange={(e) => setKeterangan(e.target.value)}
+                                    disabled={isFinal}
                                     placeholder="Contoh: Sakit demam, Acara keluarga, dll"
-                                    className="w-full px-4 py-3 rounded-xl border border-slate-200 focus:outline-none focus:border-orange-500 focus:ring-1 focus:ring-orange-500 transition-all font-medium text-slate-700 bg-slate-50 focus:bg-white"
+                                    className="w-full px-4 py-3 rounded-xl border border-slate-200 focus:outline-none focus:border-orange-500 focus:ring-1 focus:ring-orange-500 transition-all font-medium text-slate-700 bg-slate-50 focus:bg-white disabled:cursor-not-allowed disabled:bg-slate-100"
                                 />
                             </div>
                         </div>
@@ -217,13 +333,14 @@ const SiswaIzinForm = () => {
                             <label className={`
                                 w-full min-h-[200px] rounded-[1.8rem] border-2 border-dashed 
                                 flex flex-col items-center justify-center p-6 transition-all cursor-pointer relative overflow-hidden
-                                ${preview ? 'border-orange-500 bg-orange-50/20' : 'border-slate-200 hover:border-orange-500 hover:bg-slate-50'}
+                                ${preview || existingFileUrl ? 'border-orange-500 bg-orange-50/20' : 'border-slate-200 hover:border-orange-500 hover:bg-slate-50'}
                             `}>
                                 <input
                                     type="file"
                                     className="hidden"
                                     accept="image/*,.pdf"
                                     onChange={handleFileChange}
+                                    disabled={isFinal}
                                 />
 
                                 {preview ? (
@@ -232,6 +349,17 @@ const SiswaIzinForm = () => {
                                         <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity bg-black/20 text-white font-black text-xs uppercase tracking-widest">
                                             Ganti Gambar
                                         </div>
+                                    </div>
+                                ) : existingFileUrl ? (
+                                    <div className="text-slate-500 text-center space-y-3">
+                                        <Upload size={40} strokeWidth={1} className="mx-auto" />
+                                        <p className="font-black text-sm uppercase tracking-widest">Lampiran Saat Ini</p>
+                                        <a href={existingFileUrl} target="_blank" rel="noreferrer" className="text-sm font-bold text-orange-600 underline">
+                                            {existingFileUrl.split('/').pop()}
+                                        </a>
+                                        {!isFinal && (
+                                            <p className="text-[10px] italic">Unggah file baru untuk mengganti lampiran.</p>
+                                        )}
                                     </div>
                                 ) : (
                                     <div className="flex flex-col items-center text-slate-400 group-hover:text-orange-600 transition-colors">
@@ -245,10 +373,10 @@ const SiswaIzinForm = () => {
 
                         <button
                             type="submit"
-                            disabled={!file || !tanggal || !keterangan || submitting}
+                            disabled={isFinal || !tanggal || !keterangan || submitting || (!file && !existingFileUrl)}
                             className={`
                                 w-full mt-10 py-4 rounded-2xl font-black uppercase tracking-[0.15em] transition-all flex items-center justify-center gap-3 shadow-xl
-                                ${file && tanggal && keterangan && !submitting
+                                ${!isFinal && tanggal && keterangan && (file || existingFileUrl) && !submitting
                                     ? 'bg-orange-500 text-white hover:bg-orange-600 shadow-orange-500/20 active:scale-95'
                                     : 'bg-slate-100 text-slate-400 cursor-not-allowed'}
                             `}
@@ -260,13 +388,90 @@ const SiswaIzinForm = () => {
                                 </>
                             ) : (
                                 <>
-                                    Kirim Surat Izin <CheckCircle2 size={18} />
+                                    {editMode ? (isFinal ? 'Izin Final' : 'Perbarui Surat Izin') : 'Kirim Surat Izin'} <CheckCircle2 size={18} />
                                 </>
                             )}
                         </button>
+
+                        {/* ACTION BUTTONS (EDIT MODE ONLY) */}
+                        {editMode && !isFinal && (
+                            <div className="flex gap-3 mt-4">
+                                <button
+                                    type="button"
+                                    onClick={() => {
+                                        setConfirmAction('sakit');
+                                        setShowConfirmDialog(true);
+                                    }}
+                                    disabled={submitting}
+                                    className="flex-1 py-3 bg-amber-50 text-amber-700 font-bold rounded-xl hover:bg-amber-100 transition border border-amber-200 disabled:opacity-50"
+                                >
+                                    <AlertTriangle size={16} className="inline mr-2" />
+                                    Ubah ke Sakit
+                                </button>
+                                <button
+                                    type="button"
+                                    onClick={() => {
+                                        setConfirmAction('batalkan');
+                                        setShowConfirmDialog(true);
+                                    }}
+                                    disabled={submitting}
+                                    className="flex-1 py-3 bg-rose-50 text-rose-700 font-bold rounded-xl hover:bg-rose-100 transition border border-rose-200 disabled:opacity-50"
+                                >
+                                    <Trash2 size={16} className="inline mr-2" />
+                                    Batalkan Izin
+                                </button>
+                            </div>
+                        )}
                     </form>
                 </div>
             </div>
+
+            {/* CONFIRMATION DIALOG */}
+            {showConfirmDialog && (
+                <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4">
+                    <div className="bg-white rounded-3xl p-8 max-w-sm w-full shadow-2xl">
+                        <div className="flex justify-center mb-4">
+                            <div className="w-16 h-16 bg-amber-50 rounded-2xl flex items-center justify-center text-amber-600">
+                                <AlertTriangle size={32} />
+                            </div>
+                        </div>
+                        <h3 className="text-xl font-black text-slate-800 text-center mb-2">
+                            {confirmAction === 'sakit' ? 'Ubah ke Sakit?' : 'Batalkan Izin?'}
+                        </h3>
+                        <p className="text-slate-600 text-center text-sm mb-6">
+                            {confirmAction === 'sakit' 
+                                ? 'Status izin akan diubah menjadi "Sakit". Tindakan ini tidak dapat dibatalkan.'
+                                : 'Izin akan dibatalkan dan dihapus. Data ini tidak dapat dikembalikan.'}
+                        </p>
+                        <div className="flex gap-3">
+                            <button
+                                onClick={() => setShowConfirmDialog(false)}
+                                disabled={submitting}
+                                className="flex-1 py-2 bg-slate-100 text-slate-700 font-bold rounded-lg hover:bg-slate-200 transition disabled:opacity-50"
+                            >
+                                Batal
+                            </button>
+                            <button
+                                onClick={() => {
+                                    if (confirmAction === 'sakit') {
+                                        handleUpdateStatus('Sakit');
+                                    } else {
+                                        handleCancel();
+                                    }
+                                }}
+                                disabled={submitting}
+                                className={`flex-1 py-2 font-bold rounded-lg transition disabled:opacity-50 ${
+                                    confirmAction === 'sakit'
+                                        ? 'bg-amber-600 text-white hover:bg-amber-700'
+                                        : 'bg-rose-600 text-white hover:bg-rose-700'
+                                }`}
+                            >
+                                {submitting ? 'Proses...' : 'Lanjutkan'}
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
         </div>
     );
 };

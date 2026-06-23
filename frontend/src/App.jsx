@@ -12,11 +12,13 @@ import GuruList from './pages/admin/GuruList';
 import LombaList from './pages/admin/LombaList';
 import Monitoring from './pages/admin/Monitoring';
 import KelasList from './pages/admin/KelasList';
+import AdminBobotNilai from './pages/admin/AdminBobotNilai';
 import PelatihDashboard from './pages/pelatih/PelatihDashboard';
 import GuruDashboard from './pages/pelatih/GuruDashboard';
 import GuruAbsensi from './pages/pelatih/GuruAbsensi';
 import PelatihSiswa from './pages/pelatih/PelatihSiswa';
 import PelatihNilai from './pages/pelatih/PelatihNilai';
+import PelatihBobotNilai from './pages/pelatih/PelatihBobotNilai';
 import PelatihProfil from './pages/pelatih/PelatihProfil';
 import PelatihAbsensi from './pages/pelatih/PelatihAbsensi';
 import SiswaDashboard from './pages/siswa/SiswaDashboard';
@@ -61,6 +63,7 @@ const App = () => {
         <Route path="lomba" element={<LombaList />} />
         <Route path="honor" element={<AdminHonor />} />
         <Route path="monitoring" element={<Monitoring />} />
+        <Route path="bobot-nilai" element={<AdminBobotNilai />} />
         <Route path="persetujuan" element={<AdminPersetujuan />} />
         <Route path="orang-tua" element={<AdminParent />} />
         <Route path="riwayat" element={<div>Riwayat (In Progress)</div>} />
@@ -78,6 +81,7 @@ const App = () => {
         <Route index element={<PelatihDashboard />} />
         <Route path="siswa" element={<PelatihSiswa />} />
         <Route path="absensi" element={<PelatihAbsensi />} />
+        <Route path="bobot-nilai" element={<PelatihBobotNilai />} />
         <Route path="nilai" element={<PelatihNilai />} />
         <Route path="honor" element={<PelatihHonor />} />
         <Route path="profil" element={<PelatihProfil />} />

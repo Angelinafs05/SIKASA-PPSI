@@ -1,19 +1,26 @@
 <?php
 require_once __DIR__ . '/config/database.php';
+require_once __DIR__ . '/helpers/response.php';
 require_once __DIR__ . '/helpers/settings.php';
+require_once __DIR__ . '/controllers/DashboardController.php';
 
+// Mock getDB to make sure it runs
 $db = getDB();
-$period = getActivePeriod();
-$activeTahun = $period['tahun_ajaran'];
 
-$sql = "SELECT s.*, rk.kelas_id, k.nama_kelas, u.username 
-        FROM siswa s 
-        JOIN riwayat_kelas rk ON s.id = rk.siswa_id AND rk.tahun_ajaran = :active_tahun
-        JOIN kelas k ON rk.kelas_id = k.id 
-        LEFT JOIN users u ON s.id = u.ref_id AND u.role = 'siswa'";
+function requireRole(...$roles) { 
+    $db = getDB();
+    $stmt = $db->query("SELECT id, username, role, ref_id FROM users WHERE role = 'siswa' LIMIT 1");
+    $user = $stmt->fetch();
+    return (object)$user; 
+}
+$_SERVER['REQUEST_METHOD'] = 'GET';
 
-$stmt = $db->prepare($sql);
-$stmt->execute([':active_tahun' => $activeTahun]);
-$result = $stmt->fetchAll(PDO::FETCH_ASSOC);
-
-echo json_encode($result, JSON_PRETTY_PRINT);
+try {
+    DashboardController::siswaDashboard();
+} catch (Exception $e) {
+    echo "EXCEPTION THROWN:\n";
+    echo $e->getMessage() . "\n" . $e->getTraceAsString();
+} catch (Error $e) {
+    echo "ERROR THROWN:\n";
+    echo $e->getMessage() . "\n" . $e->getTraceAsString();
+}

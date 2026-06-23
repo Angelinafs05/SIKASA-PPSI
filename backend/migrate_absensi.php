@@ -4,19 +4,26 @@ $db = getDB();
 
 try {
     $cols = $db->query("DESCRIBE absensi")->fetchAll(PDO::FETCH_COLUMN);
-    
+
     if (!in_array('surat_ijin', $cols)) {
         $db->exec("ALTER TABLE absensi ADD COLUMN surat_ijin VARCHAR(255) AFTER status");
         echo "Added surat_ijin to absensi\n";
     } else {
         echo "surat_ijin already exists\n";
     }
-    
+
     if (!in_array('keterangan', $cols)) {
         $db->exec("ALTER TABLE absensi ADD COLUMN keterangan TEXT AFTER surat_ijin");
         echo "Added keterangan to absensi\n";
     } else {
         echo "keterangan already exists\n";
+    }
+
+    if (!in_array('is_final', $cols)) {
+        $db->exec("ALTER TABLE absensi ADD COLUMN is_final TINYINT(1) NOT NULL DEFAULT 0 AFTER keterangan");
+        echo "Added is_final to absensi\n";
+    } else {
+        echo "is_final already exists\n";
     }
 
     echo "Migration absensi done.\n";

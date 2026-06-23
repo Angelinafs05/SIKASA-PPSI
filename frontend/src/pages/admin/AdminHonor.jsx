@@ -21,7 +21,7 @@ const AdminHonor = () => {
     const [pelatihs, setPelatihs] = useState([]);
     const [gurus, setGurus] = useState([]);
     const [summaryData, setSummaryData] = useState([]);
-    
+
     const [loading, setLoading] = useState(true);
     const [showForm, setShowForm] = useState(false);
     const [submitting, setSubmitting] = useState(false);
@@ -38,7 +38,7 @@ const AdminHonor = () => {
         pelatih_id: '',
         bulan: months[new Date().getMonth()],
         tahun: currentYear,
-        nominal: '',
+        nominal: '150.000',
         tanggal_cair: new Date().toISOString().split('T')[0],
         metode_penyerahan: 'Tunai',
         titip_guru_id: '',
@@ -60,12 +60,12 @@ const AdminHonor = () => {
                 api.get('/api/admin/guru'),
                 api.get('/api/admin/honor/summary')
             ]);
-            
+
             if (honorRes.data.success) setHonors(honorRes.data.data);
             if (pelatihRes.data.success) setPelatihs(pelatihRes.data.data);
             if (guruRes.data.success) setGurus(guruRes.data.data);
             if (summaryRes.data.success) setSummaryData(summaryRes.data.data);
-            
+
         } catch (err) {
             setError('Gagal mengambil data honor pelatih');
         } finally {
@@ -75,19 +75,19 @@ const AdminHonor = () => {
 
     const handleInputChange = (e) => {
         const { name, value } = e.target;
-        
+
         let updates = { [name]: value };
-        
+
         if (name === 'pelatih_id') {
             const selectedPelatih = pelatihs.find(p => p.id.toString() === value.toString());
             if (selectedPelatih) {
                 const isExternal = !!selectedPelatih.guru_id;
-                
+
                 if (!isExternal && formData.metode_penyerahan === 'Titip_Guru') {
                     updates.metode_penyerahan = 'Tunai';
                     updates.titip_guru_id = '';
                 }
-                
+
                 if (isExternal) {
                     updates.titip_guru_id = selectedPelatih.guru_id;
                 } else {
@@ -97,7 +97,7 @@ const AdminHonor = () => {
                 updates.titip_guru_id = '';
             }
         }
-        
+
         if (name === 'metode_penyerahan') {
             if (value === 'Titip_Guru') {
                 const selectedPelatih = pelatihs.find(p => p.id.toString() === formData.pelatih_id.toString());
@@ -108,7 +108,7 @@ const AdminHonor = () => {
                 updates.titip_guru_id = '';
             }
         }
-        
+
         setFormData(prev => ({ ...prev, ...updates }));
     };
 
@@ -123,7 +123,7 @@ const AdminHonor = () => {
             pelatih_id: '',
             bulan: months[new Date().getMonth()],
             tahun: currentYear,
-            nominal: '',
+            nominal: '150.000',
             tanggal_cair: new Date().toISOString().split('T')[0],
             metode_penyerahan: 'Tunai',
             titip_guru_id: '',
@@ -146,7 +146,7 @@ const AdminHonor = () => {
             setError('Bukti transfer wajib diunggah untuk metode Transfer');
             return;
         }
-        
+
         if (formData.metode_penyerahan === 'Titip_Guru' && !formData.titip_guru_id) {
             setError('Silakan pilih Guru Pendamping untuk menitipkan honor');
             return;
@@ -158,7 +158,7 @@ const AdminHonor = () => {
 
         try {
             let response;
-            
+
             // Because we have file, we must use FormData
             const formDataSubmit = new FormData();
             Object.keys(formData).forEach(key => {
@@ -168,8 +168,10 @@ const AdminHonor = () => {
                     }
                 } else if (key === 'titip_guru_id') {
                     if (formData.metode_penyerahan === 'Titip_Guru' && formData.titip_guru_id) {
-                         formDataSubmit.append('titip_guru_id', formData.titip_guru_id);
+                        formDataSubmit.append('titip_guru_id', formData.titip_guru_id);
                     }
+                } else if (key === 'nominal') {
+                    formDataSubmit.append('nominal', String(formData.nominal).replace(/\./g, ''));
                 } else {
                     formDataSubmit.append(key, formData[key]);
                 }
@@ -180,7 +182,7 @@ const AdminHonor = () => {
                     'Content-Type': 'multipart/form-data'
                 }
             });
-            
+
             if (response.data.success) {
                 await fetchData();
                 setShowForm(false);
@@ -229,8 +231,8 @@ const AdminHonor = () => {
     };
 
     const formatRupiah = (angka) => {
-        return new Intl.NumberFormat('id-ID', { 
-            style: 'currency', 
+        return new Intl.NumberFormat('id-ID', {
+            style: 'currency',
             currency: 'IDR',
             minimumFractionDigits: 0,
             maximumFractionDigits: 0
@@ -314,7 +316,7 @@ const AdminHonor = () => {
                     {summaryData.length > 4 && (
                         <details className="group">
                             <summary className="text-sm font-bold text-[#000080] hover:underline cursor-pointer flex items-center gap-1 list-none outline-none">
-                                <Plus size={14} className="group-open:rotate-45 transition-transform" /> 
+                                <Plus size={14} className="group-open:rotate-45 transition-transform" />
                                 Lihat Semua Rekap Bulanan
                             </summary>
                             <div className="mt-4 overflow-hidden border border-slate-100 rounded-xl">
@@ -357,7 +359,7 @@ const AdminHonor = () => {
                             {/* Data Utama */}
                             <div className="space-y-6">
                                 <h3 className="text-lg font-bold text-slate-800 border-l-4 border-[#000080] pl-3">Data Pencairan</h3>
-                                
+
                                 <div className="space-y-2">
                                     <label className="text-sm font-bold text-slate-700">Pilih Pelatih Penerima *</label>
                                     <select
@@ -415,7 +417,7 @@ const AdminHonor = () => {
                                         required
                                     />
                                 </div>
-                                
+
                                 <div className="space-y-2">
                                     <label className="text-sm font-bold text-slate-700">Nominal Honor (Rp) *</label>
                                     <input
@@ -423,8 +425,11 @@ const AdminHonor = () => {
                                         name="nominal"
                                         value={formData.nominal}
                                         onChange={(e) => {
-                                            const val = e.target.value.replace(/[^0-9.]/g, '');
-                                            setFormData({...formData, nominal: val});
+                                            let val = e.target.value.replace(/[^0-9]/g, '');
+                                            if (val) {
+                                                val = Number(val).toLocaleString('id-ID');
+                                            }
+                                            setFormData({ ...formData, nominal: val });
                                         }}
                                         className="w-full px-4 py-3 rounded-xl border border-slate-200 focus:border-[#000080] outline-none font-medium"
                                         placeholder="150.000"
@@ -436,7 +441,7 @@ const AdminHonor = () => {
                             {/* Metode Penyerahan */}
                             <div className="space-y-6">
                                 <h3 className="text-lg font-bold text-slate-800 border-l-4 border-[#000080] pl-3">Metode Penyerahan Uang</h3>
-                                
+
                                 <div className="space-y-2">
                                     <label className="text-sm font-bold text-slate-700">Pilih Metode *</label>
                                     <select
@@ -481,8 +486,8 @@ const AdminHonor = () => {
                                     <div className="space-y-2 animate-in slide-in-from-top-2 duration-300">
                                         <label className="text-sm font-bold text-slate-700">Upload Bukti Transfer *</label>
                                         <div className="border-2 border-dashed border-slate-300 rounded-xl p-8 text-center hover:bg-slate-50 transition-colors relative cursor-pointer group">
-                                            <input 
-                                                type="file" 
+                                            <input
+                                                type="file"
                                                 accept="image/*,.pdf"
                                                 onChange={handleFileChange}
                                                 className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10"
@@ -533,9 +538,8 @@ const AdminHonor = () => {
                             <button
                                 type="submit"
                                 disabled={submitting}
-                                className={`font-bold py-3.5 px-10 rounded-xl flex items-center justify-center gap-3 transition-all duration-300 active:scale-95 shadow-lg ${
-                                    submitting ? 'bg-slate-300 text-slate-500 cursor-not-allowed' : 'bg-[#000080] hover:bg-[#000066] text-white'
-                                }`}
+                                className={`font-bold py-3.5 px-10 rounded-xl flex items-center justify-center gap-3 transition-all duration-300 active:scale-95 shadow-lg ${submitting ? 'bg-slate-300 text-slate-500 cursor-not-allowed' : 'bg-[#000080] hover:bg-[#000066] text-white'
+                                    }`}
                             >
                                 {submitting ? (
                                     <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
@@ -567,12 +571,12 @@ const AdminHonor = () => {
                                     {honors.map((item) => {
                                         const tglObj = new Date(item.tanggal_cair);
                                         const tglStr = tglObj.toLocaleDateString('id-ID', { day: '2-digit', month: 'short', year: 'numeric' });
-                                        
+
                                         return (
                                             <tr key={item.id} className="hover:bg-slate-50 transition-colors group">
                                                 <td className="py-4 px-6 text-center whitespace-nowrap">
                                                     <span className="font-black text-[#000080] bg-blue-50 px-3 py-1.5 rounded-lg border border-blue-100 uppercase tracking-widest text-[10px]">
-                                                        {item.bulan.substring(0,3)} {item.tahun}
+                                                        {item.bulan.substring(0, 3)} {item.tahun}
                                                     </span>
                                                 </td>
                                                 <td className="py-4 px-6 whitespace-nowrap">
@@ -648,7 +652,7 @@ const AdminHonor = () => {
                                                                 className="p-2 w-8 h-8 flex justify-center items-center bg-rose-50 text-rose-600 hover:bg-rose-100 rounded-lg transition-all"
                                                                 title="Batalkan / Hapus"
                                                             >
-                                                                    <Trash2 size={14} />
+                                                                <Trash2 size={14} />
                                                             </button>
                                                         )}
                                                     </div>

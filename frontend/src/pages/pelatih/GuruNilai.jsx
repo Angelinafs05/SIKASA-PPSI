@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Trophy, Save, Search, Activity, User, CheckCircle, GraduationCap, AlertCircle } from 'lucide-react';
+import { Trophy, Save, Search, Activity, User, CheckCircle, GraduationCap, AlertCircle, Calculator } from 'lucide-react';
 import api from '../../api/api';
 
 const GuruNilai = () => {
@@ -13,6 +13,7 @@ const GuruNilai = () => {
     const [searchTerm, setSearchTerm] = useState('');
 
     const [period, setPeriod] = useState({ semester: 'Ganjil', tahun: '' });
+    const [dashboardInfo, setDashboardInfo] = useState({ aspek: [] });
 
     useEffect(() => {
         fetchInitialData();
@@ -23,6 +24,7 @@ const GuruNilai = () => {
             fetchNilai(selectedEkskul);
         } else {
             setStudents([]);
+            setDashboardInfo({ aspek: [] });
         }
     }, [selectedEkskul, period]);
 
@@ -54,11 +56,18 @@ const GuruNilai = () => {
             const query = `ekskul_id=${ekskulId}&semester=${period.semester}&tahun=${period.tahun}`;
             const response = await api.get(`/api/pendamping/nilai?${query}`);
             if (response.data.success) {
-                setStudents(response.data.data.siswa.map(s => ({
-                    ...s,
-                    nilai: s.nilai || 0,
-                    keterangan: s.keterangan || ''
-                })));
+                const { aspek, siswa } = response.data.data;
+                setDashboardInfo({ aspek: aspek || [] });
+
+                setStudents(siswa.map(s => {
+                    let finalVal = parseInt(s.nilai) || 0;
+                    return {
+                        ...s,
+                        nilai_aspek: s.detail_nilai || {},
+                        nilai: finalVal,
+                        keterangan: s.keterangan || ''
+                    };
+                }));
             }
         } catch (err) {
             setError('Gagal mengambil data nilai');
@@ -67,10 +76,44 @@ const GuruNilai = () => {
         }
     };
 
-    const handleNilaiChange = (id, field, value) => {
-        setStudents(prev => prev.map(s =>
-            s.id === id ? { ...s, [field]: value } : s
-        ));
+    const handleAspectChange = (siswaId, aspectId, value) => {
+        let numericValue = value;
+        setStudents(prev => prev.map(s => {
+            if (s.id === siswaId) {
+                const updatedAspek = { ...s.nilai_aspek, [aspectId]: numericValue };
+
+                let finalScore = 0;
+                if (dashboardInfo.aspek.length > 0) {
+                    dashboardInfo.aspek.forEach(asp => {
+                        const val = parseFloat(updatedAspek[asp.id]) || 0;
+                        finalScore += (val * (parseInt(asp.bobot) / 100));
+                    });
+                    finalScore = Math.round(finalScore);
+                } else {
+                    finalScore = s.nilai;
+                }
+
+                if (s.alfa_count >= 3 && finalScore > 59) {
+                    finalScore = 59;
+                }
+
+                return { ...s, nilai_aspek: updatedAspek, nilai: finalScore };
+            }
+            return s;
+        }));
+    };
+
+    const handleOldNilaiChange = (siswaId, value) => {
+        setStudents(prev => prev.map(s => {
+            if (s.id === siswaId) {
+                return { ...s, nilai: s.alfa_count >= 3 && parseInt(value) > 59 ? 59 : value };
+            }
+            return s;
+        }));
+    };
+
+    const handleKeteranganChange = (siswaId, value) => {
+        setStudents(prev => prev.map(s => s.id === siswaId ? { ...s, keterangan: value } : s));
     };
 
     const handleSave = async () => {
@@ -87,7 +130,8 @@ const GuruNilai = () => {
                 tahun: period.tahun,
                 nilai: students.map(s => ({
                     siswa_id: s.id,
-                    nilai: parseInt(s.nilai) || 0,
+                    nilai_aspek: s.nilai_aspek,
+                    nilai: s.nilai,
                     keterangan: s.keterangan
                 }))
             };
@@ -103,6 +147,14 @@ const GuruNilai = () => {
         } finally {
             setSaving(false);
         }
+    };
+
+    const getPredicate = (nilai) => {
+        if (!nilai && nilai !== 0) return '-';
+        if (nilai >= 90) return 'A';
+        if (nilai >= 80) return 'B';
+        if (nilai >= 70) return 'C';
+        return 'D';
     };
 
     const filteredStudents = students.filter(s =>
@@ -124,7 +176,7 @@ const GuruNilai = () => {
                         Rapot Ekstrakurikuler
                     </h1>
                     <p className="text-slate-500 font-medium tracking-tight">
-                        Berikan penilaian dan deskripsi capaian siswa untuk periode <span className="text-[#000080] font-black">{period.semester} {period.tahun}</span>.
+                        Berikan penilaian per aspek capaian siswa untuk periode <span className="text-[#000080] font-black">{period.semester} {period.tahun}</span>.
                     </p>
                 </div>
 
@@ -169,6 +221,13 @@ const GuruNilai = () => {
                 </div>
             )}
 
+            {success && (
+                <div className="bg-emerald-50 text-emerald-600 p-4 rounded-2xl flex items-center gap-3 text-sm border border-emerald-100 font-bold shadow-sm animate-bounce-short">
+                    <CheckCircle size={18} />
+                    {success}
+                </div>
+            )}
+
             {/* INFO BANNER */}
             {selectedEkskul && (
                 <div className="bg-blue-50/50 border border-blue-100 rounded-[2rem] p-6 flex items-start gap-4">
@@ -178,9 +237,18 @@ const GuruNilai = () => {
                     <div>
                         <h4 className="font-black text-[#000080] mb-1 uppercase text-sm tracking-wider">Sinkronisasi Nilai</h4>
                         <p className="text-sm text-blue-800/70 font-medium leading-relaxed">
-                            Nilai ini terhubung langsung dengan <strong>Pelatih Eksternal</strong>. Anda dapat saling melengkapi nilai dan deskripsi rapot siswa secara bersamaan.
+                            Nilai ini terhubung langsung dengan <strong>Pelatih Eksternal</strong>. Aspek penilaian ditentukan oleh Pelatih.
                         </p>
                     </div>
+                </div>
+            )}
+
+            {selectedEkskul && dashboardInfo.aspek.length === 0 && !loading && (
+                <div className="bg-amber-50 border border-amber-200 p-6 rounded-[2rem] text-amber-700 mt-4">
+                    <h4 className="font-extrabold text-lg flex items-center gap-2 mb-2">Peringatan</h4>
+                    <p className="font-medium text-amber-800/80">
+                        Pelatih ekskul belum menentukan Aspek Penilaian (Bobot Nilai). Anda hanya menginput Nilai Final manual saat ini.
+                    </p>
                 </div>
             )}
 
@@ -199,52 +267,113 @@ const GuruNilai = () => {
                     <table className="w-full text-left border-collapse min-w-[800px]">
                         <thead>
                             <tr className="bg-slate-50/50 border-b border-slate-100">
-                                <th className="px-8 py-6 text-[10px] font-black text-slate-400 uppercase tracking-widest w-[30%]">Siswa</th>
-                                <th className="px-8 py-6 text-[10px] font-black text-slate-400 uppercase tracking-widest w-[10%] text-center">Nilai (0-100)</th>
-                                <th className="px-8 py-6 text-[10px] font-black text-slate-400 uppercase tracking-widest">Keterangan / Deskripsi Rapot</th>
+                                <th className="px-6 py-5 text-[10px] font-black text-slate-400 uppercase tracking-widest" style={{ minWidth: "220px" }}>Siswa</th>
+
+                                {/* Dynamic Aspect Columns */}
+                                {dashboardInfo.aspek.map(asp => (
+                                    <th key={asp.id} className="px-4 py-5 text-[10px] font-black text-[#000080] uppercase tracking-widest text-center">
+                                        <div className="flex flex-col items-center">
+                                            <span className="text-slate-500">{asp.nama_aspek}</span>
+                                            <span className="bg-blue-100 text-[#000080] px-2 py-0.5 rounded text-[9px] mt-1">{asp.bobot}%</span>
+                                        </div>
+                                    </th>
+                                ))}
+
+                                {/* Fallback old nilaj col if no aspects */}
+                                {dashboardInfo.aspek.length === 0 && (
+                                    <th className="px-6 py-5 text-[10px] font-black text-slate-400 uppercase tracking-widest text-center">Nilai Final (Manual)</th>
+                                )}
+
+                                <th className="px-6 py-5 text-[10px] font-black text-slate-400 uppercase tracking-widest text-center bg-blue-50/50">Nilai Akhir</th>
+                                <th className="px-4 py-5 text-[10px] font-black text-slate-400 uppercase tracking-widest text-center">Predikat</th>
+                                <th className="px-6 py-5 text-[10px] font-black text-slate-400 uppercase tracking-widest w-1/4">Deskripsi Rapot</th>
                             </tr>
                         </thead>
                         <tbody className="divide-y divide-slate-100">
                             {filteredStudents.length > 0 ? (
-                                filteredStudents.map((siswa) => (
+                                filteredStudents.map((siswa, index) => (
                                     <tr key={siswa.id} className="hover:bg-blue-50/30 transition-all duration-200 group">
-                                        <td className="px-8 py-6">
-                                            <div className="flex items-center gap-4">
-                                                <div className="w-10 h-10 rounded-2xl bg-slate-100 text-slate-500 flex items-center justify-center font-black group-hover:bg-blue-100 group-hover:text-[#000080] transition-all border border-white">
-                                                    <User size={18} />
+                                        <td className="px-6 py-4">
+                                            <div className="flex items-center gap-3">
+                                                <div className="w-8 h-8 rounded-xl bg-slate-100 text-slate-500 flex items-center justify-center font-black text-xs">
+                                                    {index + 1}
                                                 </div>
                                                 <div>
-                                                    <p className="font-extrabold text-slate-800 group-hover:text-[#000080] transition-colors">{siswa.nama_siswa}</p>
-                                                    <p className="text-[10px] text-slate-400 font-black uppercase tracking-tighter">Kelas {siswa.nama_kelas || '-'}</p>
+                                                    <p className="font-extrabold text-slate-800 text-sm">{siswa.nama_siswa}</p>
+                                                    <div className="flex items-center gap-2 mt-0.5">
+                                                        <p className="text-[10px] text-slate-400 font-black uppercase tracking-tighter">Kls {siswa.nama_kelas}</p>
+                                                    </div>
                                                 </div>
                                             </div>
                                         </td>
-                                        <td className="px-8 py-6">
-                                            <input
-                                                type="number"
-                                                min="0"
-                                                max="100"
-                                                value={siswa.nilai}
-                                                onChange={(e) => handleNilaiChange(siswa.id, 'nilai', e.target.value)}
-                                                className="w-20 mx-auto block px-3 py-2 text-center bg-slate-50 border-2 border-transparent focus:border-[#000080]/20 focus:bg-white rounded-xl text-sm font-black text-slate-700 outline-none transition-all shadow-inner"
-                                            />
+
+                                        {/* Dynamic Inputs */}
+                                        {dashboardInfo.aspek.map(asp => (
+                                            <td key={asp.id} className="px-4 py-4 text-center">
+                                                <input
+                                                    type="number"
+                                                    min="0"
+                                                    max="100"
+                                                    value={siswa.nilai_aspek[asp.id] !== undefined ? siswa.nilai_aspek[asp.id] : ''}
+                                                    onChange={(e) => handleAspectChange(siswa.id, asp.id, e.target.value)}
+                                                    placeholder="0"
+                                                    className="block w-20 mx-auto px-2 py-2 border border-slate-200 rounded-lg text-sm font-bold text-center outline-none focus:ring-2 focus:ring-blue-100 focus:border-[#000080]"
+                                                />
+                                            </td>
+                                        ))}
+
+                                        {/* Fallback old nilai if no aspects */}
+                                        {dashboardInfo.aspek.length === 0 && (
+                                            <td className="px-6 py-4 text-center">
+                                                <input
+                                                    type="number"
+                                                    min="0"
+                                                    max="100"
+                                                    value={siswa.nilai}
+                                                    onChange={(e) => handleOldNilaiChange(siswa.id, e.target.value)}
+                                                    placeholder="0"
+                                                    className="block w-24 mx-auto px-3 py-2 border border-slate-200 rounded-xl text-lg font-black text-center outline-none focus:ring-4 focus:ring-blue-50 focus:border-[#000080]"
+                                                />
+                                            </td>
+                                        )}
+
+                                        <td className="px-6 py-4 text-center bg-blue-50/30">
+                                            <span className={`text-xl font-black flex items-center justify-center gap-1 ${siswa.alfa_count >= 3 && siswa.nilai >= 59 ? 'text-rose-600' : 'text-[#000080]'}`}>
+                                                {dashboardInfo.aspek.length > 0 && <Calculator size={14} className="opacity-50" />}
+                                                {siswa.nilai || 0}
+                                            </span>
                                         </td>
-                                        <td className="px-8 py-6">
-                                            <textarea
-                                                rows="3"
-                                                value={siswa.keterangan}
-                                                onChange={(e) => handleNilaiChange(siswa.id, 'keterangan', e.target.value)}
-                                                className="w-full px-4 py-3 bg-slate-50 border-2 border-transparent focus:border-[#000080]/20 focus:bg-white rounded-xl text-sm font-bold text-slate-600 outline-none transition-all placeholder:font-medium placeholder:text-slate-300 shadow-inner resize-y"
-                                                placeholder="Contoh: Sangat baik dalam menguasai teknik dasardan aktif dalam tim..."
-                                            />
+
+                                        <td className="px-4 py-4 text-center">
+                                            <div className={`inline-flex items-center justify-center w-8 h-8 rounded-full font-black text-sm border 
+                                                ${getPredicate(siswa.nilai) === 'A' ? 'bg-emerald-100 text-emerald-700 border-emerald-200' :
+                                                    getPredicate(siswa.nilai) === 'B' ? 'bg-blue-100 text-blue-700 border-blue-200' :
+                                                        getPredicate(siswa.nilai) === 'C' ? 'bg-amber-100 text-amber-700 border-amber-200' :
+                                                            'bg-rose-100 text-rose-700 border-rose-200'
+                                                }`}
+                                            >
+                                                {getPredicate(siswa.nilai)}
+                                            </div>
+                                        </td>
+
+                                        <td className="px-6 py-4">
+                                            <div className="relative group/input">
+                                                <textarea
+                                                    rows="2"
+                                                    value={siswa.keterangan}
+                                                    onChange={(e) => handleKeteranganChange(siswa.id, e.target.value)}
+                                                    placeholder="Sangat baik..."
+                                                    className="block w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-sm font-medium text-slate-700 focus:ring-4 focus:ring-blue-50 focus:border-[#000080] transition-all outline-none resize-y hover:bg-white"
+                                                />
+                                            </div>
                                         </td>
                                     </tr>
                                 ))
                             ) : (
                                 <tr>
-                                    <td colSpan="3" className="px-8 py-20 text-center">
+                                    <td colSpan={5 + dashboardInfo.aspek.length} className="px-8 py-20 text-center">
                                         <div className="w-20 h-20 bg-slate-50 rounded-[2rem] flex items-center justify-center mx-auto mb-4 border-2 border-dashed border-slate-100">
-                                            <Activity size={32} className="text-slate-300" />
+                                            <Trophy size={32} className="text-slate-300" />
                                         </div>
                                         <h3 className="text-lg font-black text-slate-400 tracking-tight">Tidak Ada Siswa</h3>
                                     </td>

@@ -25,6 +25,11 @@ const PelatihDashboard = () => {
 
     useEffect(() => {
         fetchDashboardData();
+        
+        // Auto-refresh setiap 10 detik untuk update realtime
+        const refreshInterval = setInterval(fetchDashboardData, 10000);
+        
+        return () => clearInterval(refreshInterval);
     }, []);
 
     const fetchDashboardData = async () => {
