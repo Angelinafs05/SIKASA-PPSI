@@ -14,6 +14,8 @@ const SiswaIzinForm = () => {
     const [isFinal, setIsFinal] = useState(false);
     const [editMode, setEditMode] = useState(false);
     const [existingFileUrl, setExistingFileUrl] = useState('');
+    const [statusIzin, setStatusIzin] = useState('Menunggu');
+    const [catatanIzin, setCatatanIzin] = useState('');
     const [showConfirmDialog, setShowConfirmDialog] = useState(false);
     const [confirmAction, setConfirmAction] = useState(null); // 'sakit' | 'batalkan'
 
@@ -74,6 +76,8 @@ const SiswaIzinForm = () => {
                     setIsFinal(Boolean(Number(izin.is_final || 0)));
                     setTanggal(izin.tanggal || dateParam);
                     setKeterangan(izin.keterangan || '');
+                    setStatusIzin(izin.status_izin || 'Menunggu');
+                    setCatatanIzin(izin.catatan_izin || '');
                     if (izin.surat_ijin) {
                         const rootUrl = api.defaults.baseURL.replace(/\/backend\/?$/, '');
                         const normalizedPath = izin.surat_ijin.replace(/^\/+/, '');
@@ -286,6 +290,34 @@ const SiswaIzinForm = () => {
                         <p className="text-slate-500 font-medium max-w-md mt-2 mb-4 text-center">
                             Lengkapi form di bawah ini dan unggah foto **Surat Izin** / bukti ketidakhadiranmu.
                         </p>
+
+                        {editMode && (
+                            <div className={`w-full p-4 rounded-2xl flex items-center justify-between border mb-6 text-left ${
+                                statusIzin === 'Disetujui'
+                                    ? 'bg-emerald-50 text-emerald-800 border-emerald-200'
+                                    : statusIzin === 'Ditolak'
+                                        ? 'bg-rose-50 text-rose-800 border-rose-200'
+                                        : 'bg-amber-50 text-amber-800 border-amber-200'
+                            }`}>
+                                <div className="flex items-center gap-3">
+                                    <Clock size={20} className="shrink-0" />
+                                    <div>
+                                        <p className="text-xs font-bold uppercase tracking-wider">Status Verifikasi Admin</p>
+                                        <p className="text-sm font-extrabold">
+                                            {statusIzin === 'Disetujui' ? 'Disetujui oleh Admin' : statusIzin === 'Ditolak' ? 'Ditolak oleh Admin' : 'Menunggu Verifikasi Admin'}
+                                        </p>
+                                        {catatanIzin && (
+                                            <p className="text-xs mt-0.5 opacity-90">Catatan: {catatanIzin}</p>
+                                        )}
+                                    </div>
+                                </div>
+                                <span className={`px-3 py-1 rounded-full text-xs font-black uppercase ${
+                                    statusIzin === 'Disetujui' ? 'bg-emerald-200/60 text-emerald-900' : statusIzin === 'Ditolak' ? 'bg-rose-200/60 text-rose-900' : 'bg-amber-200/60 text-amber-900'
+                                }`}>
+                                    {statusIzin}
+                                </span>
+                            </div>
+                        )}
 
                         {isFinal && (
                             <div className="w-full bg-amber-50 text-amber-800 p-4 rounded-2xl flex items-center gap-3 border border-amber-100 mb-6 text-left">

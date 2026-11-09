@@ -558,7 +558,7 @@ const LombaList = () => {
                                                 <FileText size={16} className="text-emerald-500 shrink-0 mt-0.5" />
                                                 <div>
                                                     <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Surat Edaran</p>
-                                                    <a href={`http://localhost/SIKASA/backend/${l.surat_edaran}`} target="_blank" rel="noopener noreferrer" className="text-xs font-bold text-emerald-600 hover:text-emerald-700 flex items-center gap-1 mt-0.5">
+                                                    <a href={`http://localhost/SIKASA%20PPSI/backend/${l.surat_edaran}`} target="_blank" rel="noopener noreferrer" className="text-xs font-bold text-emerald-600 hover:text-emerald-700 flex items-center gap-1 mt-0.5">
                                                         <Download size={12} /> Unduh Surat
                                                     </a>
                                                 </div>
@@ -726,7 +726,7 @@ const LombaList = () => {
                                                         </td>
                                                         <td className="px-6 py-4">
                                                             {p.surat_balasan ? (
-                                                                <a href={`http://localhost/SIKASA/backend/${p.surat_balasan}`} target="_blank" rel="noopener noreferrer" className="text-xs font-bold pb-0.5 border-b border-emerald-500 text-emerald-600 hover:text-emerald-800 transition-colors flex items-center gap-1 w-max">
+                                                                <a href={`http://localhost/SIKASA%20PPSI/backend/${p.surat_balasan}`} target="_blank" rel="noopener noreferrer" className="text-xs font-bold pb-0.5 border-b border-emerald-500 text-emerald-600 hover:text-emerald-800 transition-colors flex items-center gap-1 w-max">
                                                                     <FileText size={12}/> Lihat Bukti
                                                                 </a>
                                                             ) : (
@@ -883,7 +883,7 @@ const LombaList = () => {
                                     {activeLomba.foto_hasil ? (
                                         <div className="rounded-2xl overflow-hidden border border-slate-200 shadow-sm bg-slate-50 aspect-video">
                                             <img 
-                                                src={`http://localhost/SIKASA/backend/${activeLomba.foto_hasil}`} 
+                                                src={`http://localhost/SIKASA%20PPSI/backend/${activeLomba.foto_hasil}`} 
                                                 alt="Foto Hasil Lomba" 
                                                 className="w-full h-full object-cover"
                                             />
@@ -908,7 +908,7 @@ const LombaList = () => {
                                                 <p className="text-[10px] text-slate-500 font-medium">Klik tombol di bawah untuk melihat</p>
                                             </div>
                                             <a 
-                                                href={`http://localhost/SIKASA/backend/${activeLomba.sertifikat_hasil}`} 
+                                                href={`http://localhost/SIKASA%20PPSI/backend/${activeLomba.sertifikat_hasil}`} 
                                                 target="_blank" rel="noopener noreferrer"
                                                 className="bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-2 rounded-xl text-xs font-bold shadow-md transition-all flex items-center gap-2"
                                             >

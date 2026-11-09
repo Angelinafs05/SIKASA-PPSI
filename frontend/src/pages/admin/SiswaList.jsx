@@ -325,6 +325,42 @@ const SiswaList = () => {
         }
     };
 
+    // Helper to determine grade level (e.g. 7, 8, 9, 10, 11, 12) from class name
+    const getGradeLevel = (namaKelas) => {
+        if (!namaKelas) return null;
+        const normalized = String(namaKelas).trim().toUpperCase();
+        // Check Roman numerals first (specifically with word boundaries or space/character boundaries)
+        if (/\bIX\b|^IX[\s\-_A-Z0-9]/.test(normalized)) return 9;
+        if (/\bVIII\b|^VIII[\s\-_A-Z0-9]/.test(normalized)) return 8;
+        if (/\bVII\b|^VII[\s\-_A-Z0-9]/.test(normalized)) return 7;
+        if (/\bXII\b|^XII[\s\-_A-Z0-9]/.test(normalized)) return 12;
+        if (/\bXI\b|^XI[\s\-_A-Z0-9]/.test(normalized)) return 11;
+        if (/\bX\b|^X[\s\-_A-Z0-9]/.test(normalized)) return 10;
+        
+        // Check Arabic numbers (e.g. "7A", "Kelas 7", "8-1")
+        const match = normalized.match(/\b(7|8|9|10|11|12)\b/) || normalized.match(/(?:KELAS\s*|KLS\s*)?(7|8|9|10|11|12)/);
+        if (match) return parseInt(match[1]);
+
+        return null;
+    };
+
+    const selectedKelasAsal = kelases.find(k => k.id === parseInt(promoteFromKelasId));
+    const selectedKelasAsalLevel = selectedKelasAsal ? getGradeLevel(selectedKelasAsal.nama_kelas) : null;
+    
+    // Can only graduate if it's the final grade (e.g. Grade 9 in SMP, Grade 12 in SMA, or if not determinable but selected)
+    const canGraduate = selectedKelasAsalLevel ? (selectedKelasAsalLevel >= 9) : true;
+
+    // Filter available destination classes based on origin class
+    const availableDestinationKelases = kelases.filter(k => {
+        if (!selectedKelasAsalLevel) {
+            // If origin grade is not set or cannot be parsed, allow other classes except the same class
+            return !promoteFromKelasId || k.id !== parseInt(promoteFromKelasId);
+        }
+        const targetLevel = getGradeLevel(k.nama_kelas);
+        // Only show classes of next level (e.g. if origin is 7 -> only 8, if origin is 8 -> only 9)
+        return targetLevel === selectedKelasAsalLevel + 1;
+    });
+
     const filteredSiswa = filterKelas
         ? siswa.filter(s => s.kelas_id === parseInt(filterKelas))
         : siswa;
@@ -344,17 +380,29 @@ const SiswaList = () => {
             {/* HEADER */}
             <div className="flex flex-col md:flex-row md:items-end justify-between gap-4 border-b border-slate-200 pb-6">
                 <div>
-                    <h1 className="text-3xl font-extrabold text-[#000080] tracking-tight mb-1">
+                    <h1 className="text-3xl font-extrabold text-[#000080] tracking-tight mb-1 flex items-center gap-3">
                         {activeView === 'form' ? (isEditing ? 'Edit Data Siswa' : 'Tambah Siswa Baru') :
                             activeView === 'import' ? 'Import Data Siswa' :
                                 activeView === 'promote' ? 'Manajemen Kenaikan Kelas' :
                                     'Data Siswa'}
                     </h1>
-                    <p className="text-slate-500 font-medium">
-                        {activeView === 'list' && 'Kelola daftar siswa yang terdaftar di SIKASA'}
-                        {activeView === 'promote' && 'Pindahkan kelas siswa secara massal untuk tahun ajaran baru'}
-                        {activeView === 'import' && 'Masukkan daftar siswa baru dengan format CSV'}
-                    </p>
+                    <div className="flex flex-wrap items-center gap-2 mt-1">
+                        <p className="text-slate-500 font-medium">
+                            {activeView === 'list' && 'Kelola daftar siswa yang terdaftar di SIKASA'}
+                            {activeView === 'promote' && 'Pindahkan kelas siswa secara massal untuk tahun ajaran baru'}
+                            {activeView === 'import' && 'Masukkan daftar siswa baru dengan format CSV'}
+                        </p>
+                        {activeView === 'list' && (
+                            <span className="inline-flex items-center gap-1.5 px-3 py-1 bg-blue-50 text-[#000080] border border-blue-200/70 rounded-full text-xs font-black shadow-sm">
+                                <Users size={14} /> Total: {filteredSiswa.length} Siswa
+                                {filterKelas && (
+                                    <span className="text-slate-500 font-bold">
+                                        (Kelas {kelases.find(k => k.id === parseInt(filterKelas))?.nama_kelas || ''})
+                                    </span>
+                                )}
+                            </span>
+                        )}
+                    </div>
                 </div>
                 <div className="flex flex-wrap items-center gap-4">
                     {activeView === 'list' && (
@@ -619,7 +667,11 @@ const SiswaList = () => {
                                 <label className="text-xs font-bold text-slate-600 uppercase tracking-wider">Mulai dari (Kelas Asal)</label>
                                 <select
                                     value={promoteFromKelasId}
-                                    onChange={(e) => { setPromoteFromKelasId(e.target.value); setSelectedSiswaIds([]); }}
+                                    onChange={(e) => { 
+                                        setPromoteFromKelasId(e.target.value); 
+                                        setPromoteToKelasId('');
+                                        setSelectedSiswaIds([]); 
+                                    }}
                                     className="w-full border border-slate-300 rounded-xl px-4 py-3 bg-white font-bold text-slate-700 outline-none focus:border-[#000080]"
                                 >
                                     <option value="">-- Pilih Kelas Asal --</option>
@@ -634,19 +686,30 @@ const SiswaList = () => {
                                 <select
                                     value={promoteToKelasId}
                                     onChange={(e) => setPromoteToKelasId(e.target.value)}
-                                    className="w-full border-2 border-amber-300 rounded-xl px-4 py-3 bg-amber-50 font-bold text-amber-900 outline-none focus:border-amber-500"
+                                    disabled={!promoteFromKelasId || availableDestinationKelases.length === 0}
+                                    className="w-full border-2 border-amber-300 rounded-xl px-4 py-3 bg-amber-50 font-bold text-amber-900 outline-none focus:border-amber-500 disabled:opacity-60 disabled:cursor-not-allowed"
                                 >
-                                    <option value="">-- Pilih Kelas Tujuan --</option>
-                                    {kelases.map(k => <option key={k.id} value={k.id}>{k.nama_kelas}</option>)}
+                                    <option value="">
+                                        {!promoteFromKelasId 
+                                            ? '-- Pilih Kelas Asal Dahulu --' 
+                                            : availableDestinationKelases.length === 0 
+                                                ? '-- Tidak ada kelas tujuan (Gunakan tombol Luluskan) --' 
+                                                : '-- Pilih Kelas Tujuan --'}
+                                    </option>
+                                    {availableDestinationKelases.map(k => <option key={k.id} value={k.id}>{k.nama_kelas}</option>)}
                                 </select>
                             </div>
 
                             <div className="mt-auto grid grid-cols-2 gap-3">
                                 <button
                                     onClick={handleGraduate}
-                                    disabled={submitting || selectedSiswaIds.length === 0}
-                                    className="bg-slate-800 hover:bg-black disabled:bg-slate-300 disabled:text-slate-500 text-white font-bold py-3 rounded-xl shadow-md w-full flex items-center justify-center gap-2"
-                                    title="Luluskan Siswa Terpilih"
+                                    disabled={submitting || selectedSiswaIds.length === 0 || !canGraduate}
+                                    className={`py-3 rounded-xl shadow-md w-full flex items-center justify-center gap-2 font-bold transition-all ${
+                                        canGraduate && selectedSiswaIds.length > 0 && !submitting
+                                            ? 'bg-slate-800 hover:bg-black text-white cursor-pointer active:scale-95'
+                                            : 'bg-slate-200 text-slate-400 cursor-not-allowed opacity-70 shadow-none'
+                                    }`}
+                                    title={!canGraduate ? "Hanya siswa kelas akhir (Kelas 9) yang dapat diluluskan" : "Luluskan Siswa Terpilih"}
                                 >
                                     <GraduationCap size={18} /> Luluskan
                                 </button>
@@ -711,6 +774,22 @@ const SiswaList = () => {
 
             {activeView === 'list' && (
                 <div className="bg-white border border-slate-200 shadow-md rounded-2xl overflow-hidden p-6 animate-in fade-in">
+                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-4 mb-4 border-b border-slate-100">
+                        <div className="flex items-center gap-2">
+                            <span className="text-sm font-bold text-slate-700">Filter Terpilih:</span>
+                            <span className="text-sm font-extrabold text-[#000080]">
+                                {filterKelas 
+                                    ? `Kelas ${kelases.find(k => k.id === parseInt(filterKelas))?.nama_kelas || ''}` 
+                                    : 'Semua Kelas'}
+                            </span>
+                            <span className="text-xs text-slate-400 font-bold">
+                                ({filterStatus === 'all' ? 'Semua Status' : filterStatus === 'alumni' ? 'Alumni' : 'Siswa Aktif'})
+                            </span>
+                        </div>
+                        <div className="inline-flex items-center gap-2 px-3.5 py-1.5 bg-blue-50 text-[#000080] rounded-xl text-xs font-black border border-blue-100">
+                            <Users size={15} /> Total: {filteredSiswa.length} Siswa
+                        </div>
+                    </div>
                     {siswa.length > 0 ? (
                         <div className="overflow-x-auto rounded-xl border border-slate-100">
                             <table className="w-full text-left text-sm">

@@ -71,6 +71,18 @@ class PelatihController {
         try {
             $db->beginTransaction();
 
+            // Validasi: 1 guru pendamping hanya boleh mendampingi 1 ekskul/pelatih
+            if (!empty($guruId)) {
+                $checkGuru = $db->prepare("SELECT p.nama_pelatih, e.nama_ekskul, g.nama_guru FROM pelatih p LEFT JOIN guru_pendamping g ON p.guru_id = g.id LEFT JOIN ekstrakurikuler e ON p.ekskul_id = e.id WHERE p.guru_id = :gid LIMIT 1");
+                $checkGuru->execute([':gid' => $guruId]);
+                $already = $checkGuru->fetch();
+                if ($already) {
+                    $db->rollBack();
+                    $ekskulInfo = !empty($already['nama_ekskul']) ? " di ekstrakurikuler " . $already['nama_ekskul'] : "";
+                    errorResponse("Guru " . ($already['nama_guru'] ?? 'tersebut') . " sudah mendampingi pelatih " . $already['nama_pelatih'] . $ekskulInfo . ". Satu guru hanya bisa mendampingi 1 kegiatan.", 400);
+                }
+            }
+
             // Cek apakah username sudah digunakan
             if (!empty($username)) {
                 $check = $db->prepare("SELECT id FROM users WHERE username = :u");
@@ -92,6 +104,12 @@ class PelatihController {
                 ':guru_id'    => $guruId,
             ]);
             $pelatihId = $db->lastInsertId();
+
+            // Sinkronisasi dua arah: Update pelatih di tabel ekstrakurikuler jika ekskulId dipilih
+            if (!empty($ekskulId)) {
+                $db->prepare("UPDATE ekstrakurikuler SET pelatih = :nama WHERE id = :eid")
+                    ->execute([':nama' => $nama, ':eid' => $ekskulId]);
+            }
             
             // Buat akun user jika username diberikan
             if (!empty($username) && !empty($password)) {
@@ -138,6 +156,18 @@ class PelatihController {
         try {
             $db->beginTransaction();
 
+            // Validasi: 1 guru pendamping hanya boleh mendampingi 1 ekskul/pelatih
+            if (!empty($guruId)) {
+                $checkGuru = $db->prepare("SELECT p.nama_pelatih, e.nama_ekskul, g.nama_guru FROM pelatih p LEFT JOIN guru_pendamping g ON p.guru_id = g.id LEFT JOIN ekstrakurikuler e ON p.ekskul_id = e.id WHERE p.guru_id = :gid AND p.id != :pid LIMIT 1");
+                $checkGuru->execute([':gid' => $guruId, ':pid' => $id]);
+                $already = $checkGuru->fetch();
+                if ($already) {
+                    $db->rollBack();
+                    $ekskulInfo = !empty($already['nama_ekskul']) ? " di ekstrakurikuler " . $already['nama_ekskul'] : "";
+                    errorResponse("Guru " . ($already['nama_guru'] ?? 'tersebut') . " sudah mendampingi pelatih " . $already['nama_pelatih'] . $ekskulInfo . ". Satu guru hanya bisa mendampingi 1 kegiatan.", 400);
+                }
+            }
+
             // Cek apakah username sudah digunakan oleh orang lain
             if (!empty($username)) {
                 $check = $db->prepare("SELECT id FROM users WHERE username = :u AND NOT (ref_id = :ref AND role = 'pelatih')");
@@ -147,6 +177,11 @@ class PelatihController {
                     errorResponse("Username '$username' sudah digunakan oleh orang lain", 400);
                 }
             }
+
+            // Ambil data pelatih lama untuk sinkronisasi ekskul
+            $stmtOld = $db->prepare("SELECT nama_pelatih, ekskul_id FROM pelatih WHERE id = :id");
+            $stmtOld->execute([':id' => $id]);
+            $oldPelatih = $stmtOld->fetch();
 
             $stmt = $db->prepare("
                 UPDATE pelatih SET 
@@ -191,6 +226,17 @@ class PelatihController {
                 }
             }
             
+            // Sinkronisasi dua arah ke tabel ekstrakurikuler
+            if ($oldPelatih && !empty($oldPelatih['ekskul_id']) && $oldPelatih['ekskul_id'] != $ekskulId) {
+                // Bersihkan ekskul lama jika pelatih pindah ekskul
+                $db->prepare("UPDATE ekstrakurikuler SET pelatih = '' WHERE id = :old_eid AND pelatih = :old_nama")
+                    ->execute([':old_eid' => $oldPelatih['ekskul_id'], ':old_nama' => $oldPelatih['nama_pelatih']]);
+            }
+            if (!empty($ekskulId)) {
+                $db->prepare("UPDATE ekstrakurikuler SET pelatih = :nama WHERE id = :eid")
+                    ->execute([':nama' => $nama, ':eid' => $ekskulId]);
+            }
+
             $db->commit();
             successResponse(null, 'Pelatih berhasil diupdate');
         } catch (Exception $e) {

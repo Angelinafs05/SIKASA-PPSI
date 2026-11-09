@@ -13,9 +13,13 @@ class GuruController {
         $db = getDB();
         
         $stmt = $db->query("
-            SELECT g.*, u.username 
+            SELECT g.*, u.username,
+                   p.id AS assigned_pelatih_id, p.nama_pelatih AS assigned_pelatih_nama,
+                   p.ekskul_id AS assigned_ekskul_id, e.nama_ekskul AS assigned_ekskul_nama
             FROM guru_pendamping g
             LEFT JOIN users u ON g.id = u.ref_id AND u.role = 'pendamping'
+            LEFT JOIN pelatih p ON p.guru_id = g.id
+            LEFT JOIN ekstrakurikuler e ON p.ekskul_id = e.id
             ORDER BY g.nama_guru ASC
         ");
         
@@ -191,4 +195,62 @@ class GuruController {
             errorResponse('Gagal menghapus data: ' . $e->getMessage(), 500);
         }
     }
+
+    /**
+     * GET /api/pendamping/profil
+     */
+    public static function getProfil(): void {
+        $user = requireRole('pendamping');
+        $db = getDB();
+        
+        $stmt = $db->prepare("
+            SELECT g.*, u.username 
+            FROM guru_pendamping g
+            JOIN users u ON g.id = u.ref_id AND u.role = 'pendamping'
+            WHERE g.id = :id
+        ");
+        $stmt->execute([':id' => $user->ref_id]);
+        $profil = $stmt->fetch();
+        
+        if (!$profil) {
+            errorResponse('Profil guru tidak ditemukan', 404);
+        }
+        
+        successResponse($profil);
+    }
+
+    /**
+     * PUT /api/pendamping/profil/password
+     */
+    public static function updatePassword(): void {
+        $user = requireRole('pendamping');
+        $data = getRequestBody();
+        $db = getDB();
+        
+        $oldPassword = $data['old_password'] ?? '';
+        $newPassword = $data['new_password'] ?? '';
+        
+        if (empty($oldPassword) || empty($newPassword)) {
+            errorResponse('Password lama dan password baru wajib diisi', 400);
+        }
+        
+        if (strlen($newPassword) < 6) {
+            errorResponse('Password baru minimal 6 karakter', 400);
+        }
+        
+        $stmt = $db->prepare("SELECT id, password FROM users WHERE ref_id = :ref_id AND role = 'pendamping'");
+        $stmt->execute([':ref_id' => $user->ref_id]);
+        $userData = $stmt->fetch();
+        
+        if (!$userData || !password_verify($oldPassword, $userData['password'])) {
+            errorResponse('Password lama salah', 401);
+        }
+        
+        $hashed = password_hash($newPassword, PASSWORD_DEFAULT);
+        $stmtUpdate = $db->prepare("UPDATE users SET password = :pass WHERE id = :id");
+        $stmtUpdate->execute([':pass' => $hashed, ':id' => $userData['id']]);
+        
+        successResponse(null, 'Password berhasil diperbarui');
+    }
 }
+

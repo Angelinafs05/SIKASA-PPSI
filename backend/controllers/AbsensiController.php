@@ -70,8 +70,23 @@ class AbsensiController
             ':s1' => $period['semester']
         ]);
 
+        // Ambil materi dari jurnal_ekskul jika ada
+        $stmt_materi = $db->prepare("SELECT materi FROM jurnal_ekskul WHERE ekskul_id = :eid AND tanggal = :tgl AND tahun_ajaran = :t AND semester = :s");
+        $stmt_materi->execute([':eid' => $ekskulId, ':tgl' => $tanggal, ':t' => $period['tahun_ajaran'], ':s' => $period['semester']]);
+        $jurnal = $stmt_materi->fetch();
+        $materiHariIni = $jurnal['materi'] ?? '';
+
+        // Fallback cek di tabel absensi
+        if (empty($materiHariIni)) {
+            $stmt_materi_abs = $db->prepare("SELECT materi FROM absensi WHERE id_pelatih = :pid AND tanggal = :tgl AND materi IS NOT NULL AND materi != '' LIMIT 1");
+            $stmt_materi_abs->execute([':pid' => $user->ref_id, ':tgl' => $tanggal]);
+            $materiHariIni = $stmt_materi_abs->fetchColumn() ?: '';
+        }
+
         successResponse([
             'tanggal' => $tanggal,
+            'ekskul_id' => $ekskulId,
+            'materi'  => $materiHariIni,
             'siswa'   => $stmt2->fetchAll(),
         ]);
     }
@@ -87,8 +102,38 @@ class AbsensiController
         $db = getDB();
 
         $tanggal  = $data['tanggal'] ?? date('Y-m-d');
+        $materi   = trim($data['materi'] ?? '');
         $absensi  = $data['absensi'] ?? [];
         $idPelatih = $user->ref_id;
+
+        // Ambil ekskul_id pelatih
+        $stmt_pe = $db->prepare("SELECT ekskul_id FROM pelatih WHERE id = :id");
+        $stmt_pe->execute([':id' => $idPelatih]);
+        $pelatihData = $stmt_pe->fetch();
+        $ekskulIdPelatih = $pelatihData['ekskul_id'] ?? 0;
+
+        $period = getActivePeriod();
+        $tahun  = $period['tahun_ajaran'];
+        $sem    = $period['semester'];
+
+        // Simpan / update ke jurnal_ekskul
+        if (!empty($ekskulIdPelatih)) {
+            $stmt_jurnal = $db->prepare("
+                INSERT INTO jurnal_ekskul (ekskul_id, pelatih_id, tanggal, materi, tahun_ajaran, semester)
+                VALUES (:eid, :pid, :tgl, :materi, :thn, :sem)
+                ON DUPLICATE KEY UPDATE materi = :materi_upd, pelatih_id = :pid_upd
+            ");
+            $stmt_jurnal->execute([
+                ':eid' => $ekskulIdPelatih,
+                ':pid' => $idPelatih,
+                ':tgl' => $tanggal,
+                ':materi' => $materi,
+                ':thn' => $tahun,
+                ':sem' => $sem,
+                ':materi_upd' => $materi,
+                ':pid_upd' => $idPelatih
+            ]);
+        }
 
         if (empty($absensi)) {
             errorResponse('Data absensi tidak boleh kosong', 400);
@@ -117,8 +162,8 @@ class AbsensiController
                     $db->prepare("UPDATE absensi SET status = :status, id_pelatih = :pid, is_final = 1 WHERE id_siswa = :sid AND tanggal = :tgl AND tahun_ajaran = :tahun AND semester = :sem")
                         ->execute([':status' => $status, ':pid' => $idPelatih, ':sid' => $siswaId, ':tgl' => $tanggal, ':tahun' => $tahun, ':sem' => $sem]);
                 } else {
-                    $db->prepare("UPDATE absensi SET status = :status, id_pelatih = :pid WHERE id_siswa = :sid AND tanggal = :tgl AND tahun_ajaran = :tahun AND semester = :sem")
-                        ->execute([':status' => $status, ':pid' => $idPelatih, ':sid' => $siswaId, ':tgl' => $tanggal, ':tahun' => $tahun, ':sem' => $sem]);
+                    $db->prepare("UPDATE absensi SET status = :status, id_pelatih = :pid, materi = :materi WHERE id_siswa = :sid AND tanggal = :tgl AND tahun_ajaran = :tahun AND semester = :sem")
+                        ->execute([':status' => $status, ':pid' => $idPelatih, ':materi' => $materi, ':sid' => $siswaId, ':tgl' => $tanggal, ':tahun' => $tahun, ':sem' => $sem]);
                 }
             } else {
                 // Insert and finalize teacher input
@@ -197,9 +242,15 @@ class AbsensiController
             ':s1' => $period['semester']
         ]);
 
+        $stmt_materi = $db->prepare("SELECT materi FROM jurnal_ekskul WHERE ekskul_id = :eid AND tanggal = :tgl AND tahun_ajaran = :t AND semester = :s");
+        $stmt_materi->execute([':eid' => $ekskulId, ':tgl' => $tanggal, ':t' => $period['tahun_ajaran'], ':s' => $period['semester']]);
+        $jurnal = $stmt_materi->fetch();
+        $materiHariIni = $jurnal['materi'] ?? '';
+
         successResponse([
             'tanggal' => $tanggal,
             'ekskul_id' => $ekskulId,
+            'materi'  => $materiHariIni,
             'siswa'   => $stmt2->fetchAll(),
         ]);
     }
@@ -214,6 +265,7 @@ class AbsensiController
         $db = getDB();
 
         $tanggal  = $data['tanggal'] ?? date('Y-m-d');
+        $materi   = trim($data['materi'] ?? '');
         $ekskulId = $data['ekskul_id'] ?? 0;
         $absensi  = $data['absensi'] ?? [];
         $guruId = $user->ref_id;
@@ -267,8 +319,8 @@ class AbsensiController
                     $db->prepare("UPDATE absensi SET status = :status, id_pelatih = :pid, is_final = 1 WHERE id_siswa = :sid AND tanggal = :tgl AND tahun_ajaran = :tahun AND semester = :sem")
                         ->execute([':status' => $status, ':pid' => $idPelatih, ':sid' => $siswaId, ':tgl' => $tanggal, ':tahun' => $tahun, ':sem' => $sem]);
                 } else {
-                    $db->prepare("UPDATE absensi SET status = :status, id_pelatih = :pid WHERE id_siswa = :sid AND tanggal = :tgl AND tahun_ajaran = :tahun AND semester = :sem")
-                        ->execute([':status' => $status, ':pid' => $idPelatih, ':sid' => $siswaId, ':tgl' => $tanggal, ':tahun' => $tahun, ':sem' => $sem]);
+                    $db->prepare("UPDATE absensi SET status = :status, id_pelatih = :pid, materi = :materi WHERE id_siswa = :sid AND tanggal = :tgl AND tahun_ajaran = :tahun AND semester = :sem")
+                        ->execute([':status' => $status, ':pid' => $idPelatih, ':materi' => $materi, ':sid' => $siswaId, ':tgl' => $tanggal, ':tahun' => $tahun, ':sem' => $sem]);
                 }
             } else {
                 // Insert and finalize teacher input
@@ -378,10 +430,10 @@ class AbsensiController
                 errorResponse('Surat izin wajib diunggah', 400);
             }
             if ($hasFinal) {
-                $db->prepare("UPDATE absensi SET status = 'Izin', keterangan = :ket, surat_ijin = :file, is_final = 0 WHERE id_siswa = :sid AND tanggal = :tgl AND tahun_ajaran = :tahun AND semester = :sem")
+                $db->prepare("UPDATE absensi SET status = 'Izin', status_izin = 'Menunggu', keterangan = :ket, surat_ijin = :file, is_final = 0 WHERE id_siswa = :sid AND tanggal = :tgl AND tahun_ajaran = :tahun AND semester = :sem")
                     ->execute([':ket' => $keterangan, ':file' => $filePath, ':sid' => $siswaId, ':tgl' => $tanggal, ':tahun' => $tahun, ':sem' => $sem]);
             } else {
-                $db->prepare("UPDATE absensi SET status = 'Izin', keterangan = :ket, surat_ijin = :file WHERE id_siswa = :sid AND tanggal = :tgl AND tahun_ajaran = :tahun AND semester = :sem")
+                $db->prepare("UPDATE absensi SET status = 'Izin', status_izin = 'Menunggu', keterangan = :ket, surat_ijin = :file WHERE id_siswa = :sid AND tanggal = :tgl AND tahun_ajaran = :tahun AND semester = :sem")
                     ->execute([':ket' => $keterangan, ':file' => $filePath, ':sid' => $siswaId, ':tgl' => $tanggal, ':tahun' => $tahun, ':sem' => $sem]);
             }
         } else {
@@ -389,10 +441,10 @@ class AbsensiController
                 errorResponse('Surat izin wajib diunggah', 400);
             }
             if ($hasFinal) {
-                $db->prepare("INSERT INTO absensi (id_siswa, id_pelatih, tanggal, status, keterangan, surat_ijin, tahun_ajaran, semester, is_final) VALUES (:sid, :pid, :tgl, 'Izin', :ket, :file, :tahun, :sem, 0)")
+                $db->prepare("INSERT INTO absensi (id_siswa, id_pelatih, tanggal, status, status_izin, keterangan, surat_ijin, tahun_ajaran, semester, is_final) VALUES (:sid, :pid, :tgl, 'Izin', 'Menunggu', :ket, :file, :tahun, :sem, 0)")
                     ->execute([':sid' => $siswaId, ':pid' => $idPelatih, ':tgl' => $tanggal, ':ket' => $keterangan, ':file' => $uploadPath, ':tahun' => $tahun, ':sem' => $sem]);
             } else {
-                $db->prepare("INSERT INTO absensi (id_siswa, id_pelatih, tanggal, status, keterangan, surat_ijin, tahun_ajaran, semester) VALUES (:sid, :pid, :tgl, 'Izin', :ket, :file, :tahun, :sem)")
+                $db->prepare("INSERT INTO absensi (id_siswa, id_pelatih, tanggal, status, status_izin, keterangan, surat_ijin, tahun_ajaran, semester) VALUES (:sid, :pid, :tgl, 'Izin', 'Menunggu', :ket, :file, :tahun, :sem)")
                     ->execute([':sid' => $siswaId, ':pid' => $idPelatih, ':tgl' => $tanggal, ':ket' => $keterangan, ':file' => $uploadPath, ':tahun' => $tahun, ':sem' => $sem]);
             }
         }
@@ -419,7 +471,7 @@ class AbsensiController
         $hasFinal = self::hasAbsensiColumn($db, 'is_final');
         $selectFinal = $hasFinal ? 'a.is_final' : '0 AS is_final';
 
-        $stmt = $db->prepare("SELECT a.tanggal, a.status, a.keterangan, a.surat_ijin, {$selectFinal}
+        $stmt = $db->prepare("SELECT a.tanggal, a.status, a.status_izin, a.catatan_izin, a.keterangan, a.surat_ijin, {$selectFinal}
             FROM absensi a
             JOIN pelatih p ON a.id_pelatih = p.id
             WHERE a.id_siswa = :sid
@@ -515,7 +567,7 @@ class AbsensiController
                 $selectFinal = $hasFinal ? 'a.is_final' : '0 AS is_final';
 
                 $stmt_log = $db->prepare("
-                    SELECT a.tanggal, a.status, a.keterangan, {$selectFinal}, :eid1 as ekskul_id
+                    SELECT a.tanggal, a.status, a.status_izin, a.catatan_izin, a.keterangan, {$selectFinal}, :eid1 as ekskul_id
                     FROM absensi a
                     JOIN pelatih p ON a.id_pelatih = p.id
                     WHERE a.id_siswa = :sid AND p.ekskul_id = :eid2
@@ -651,4 +703,114 @@ class AbsensiController
 
         successResponse(null, 'Izin berhasil dibatalkan', 200);
     }
+
+    /**
+     * GET /api/admin/izin
+     * List all izin for Admin / Kepala Sekolah / Pendamping
+     */
+    public static function adminListIzin(): void
+    {
+        requireRole('admin', 'kepala_sekolah', 'pendamping');
+        $db = getDB();
+        $period = getActivePeriod();
+
+        $statusFilter = $_GET['status_izin'] ?? null;
+        $tahun = $_GET['tahun'] ?? $period['tahun_ajaran'];
+        $sem = $_GET['semester'] ?? $period['semester'];
+
+        $sql = "
+            SELECT a.id, a.id_siswa, a.id_pelatih, a.tanggal, a.status, a.surat_ijin,
+                   a.status_izin, a.catatan_izin, a.keterangan, a.tahun_ajaran, a.semester,
+                   s.nama_siswa, s.no_induk, k.nama_kelas,
+                   e.nama_ekskul, p.nama_pelatih
+            FROM absensi a
+            JOIN siswa s ON a.id_siswa = s.id
+            LEFT JOIN kelas k ON s.kelas_id = k.id
+            JOIN pelatih p ON a.id_pelatih = p.id
+            JOIN ekstrakurikuler e ON p.ekskul_id = e.id
+            WHERE a.status = 'Izin' AND a.tahun_ajaran = :t AND a.semester = :s
+        ";
+        $params = [':t' => $tahun, ':s' => $sem];
+
+        if ($statusFilter) {
+            $sql .= " AND a.status_izin = :st";
+            $params[':st'] = $statusFilter;
+        }
+
+        $sql .= " ORDER BY a.tanggal DESC, a.id DESC";
+
+        $stmt = $db->prepare($sql);
+        $stmt->execute($params);
+        successResponse($stmt->fetchAll());
+    }
+
+    /**
+     * POST /api/admin/izin/{id}/status
+     * Body: { status_izin: 'Disetujui'|'Ditolak', catatan_izin: '...' }
+     */
+    public static function adminUpdateIzin(int $id): void
+    {
+        requireRole('admin');
+        $data = getRequestBody();
+        $db = getDB();
+
+        $statusIzin = $data['status_izin'] ?? '';
+        $catatan = $data['catatan_izin'] ?? '';
+
+        if (!in_array($statusIzin, ['Menunggu', 'Disetujui', 'Ditolak'])) {
+            errorResponse('Status izin tidak valid', 400);
+        }
+
+        $stmt = $db->prepare("UPDATE absensi SET status_izin = :st, catatan_izin = :cat WHERE id = :id");
+        $stmt->execute([':st' => $statusIzin, ':cat' => $catatan, ':id' => $id]);
+
+        successResponse(null, "Status izin berhasil diubah menjadi $statusIzin");
+    }
+
+    /**
+     * GET /api/admin/rekap-absensi?ekskul_id=...&bulan=...&tahun=...
+     */
+    public static function rekapAbsensi(): void
+    {
+        requireRole('admin', 'kepala_sekolah', 'pendamping');
+        $db = getDB();
+        $period = getActivePeriod();
+
+        $ekskulId = $_GET['ekskul_id'] ?? null;
+        $tahun = $_GET['tahun'] ?? $period['tahun_ajaran'];
+        $sem = $_GET['semester'] ?? $period['semester'];
+
+        $sql = "
+            SELECT s.id, s.no_induk, s.nama_siswa, k.nama_kelas,
+                   e.nama_ekskul,
+                   COUNT(CASE WHEN a.status = 'Hadir' THEN 1 END) as total_hadir,
+                   COUNT(CASE WHEN a.status = 'Izin' THEN 1 END) as total_izin,
+                   COUNT(CASE WHEN a.status = 'Sakit' THEN 1 END) as total_sakit,
+                   COUNT(CASE WHEN a.status = 'Alfa' THEN 1 END) as total_alfa,
+                   COUNT(a.id) as total_pertemuan
+            FROM pendaftaran_ekskul pe
+            JOIN siswa s ON pe.siswa_id = s.id
+            LEFT JOIN kelas k ON s.kelas_id = k.id
+            JOIN ekstrakurikuler e ON pe.ekskul_id = e.id
+            LEFT JOIN absensi a ON a.id_siswa = s.id AND a.tahun_ajaran = :t1 AND a.semester = :s1
+                 AND a.id_pelatih IN (SELECT id FROM pelatih WHERE ekskul_id = pe.ekskul_id)
+            WHERE pe.status = 'approved' AND pe.tahun_ajaran = :t2 AND pe.semester = :s2
+        ";
+        $params = [
+            ':t1' => $tahun, ':s1' => $sem,
+            ':t2' => $tahun, ':s2' => $sem
+        ];
+
+        if ($ekskulId) {
+            $sql .= " AND pe.ekskul_id = :eid";
+            $params[':eid'] = $ekskulId;
+        }
+
+        $sql .= " GROUP BY s.id, pe.ekskul_id ORDER BY k.nama_kelas ASC, s.nama_siswa ASC";
+
+        $stmt = $db->prepare($sql);
+        $stmt->execute($params);
+        successResponse($stmt->fetchAll());
+    }
 }
+

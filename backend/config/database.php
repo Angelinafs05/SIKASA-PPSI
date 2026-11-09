@@ -5,7 +5,7 @@
  */
 
 define('DB_HOST', 'localhost');
-define('DB_NAME', 'sikasa_db');
+define('DB_NAME', 'sikasa_ppsi');
 define('DB_USER', 'root');
 define('DB_PASS', '');
 

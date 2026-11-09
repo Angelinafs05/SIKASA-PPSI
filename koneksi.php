@@ -2,7 +2,7 @@
 $host = "localhost";
 $user = "root";
 $pass = "";
-$db   = "sikasa_db";
+$db   = "sikasa_ppsi";
 
 $conn = mysqli_connect($host, $user, $pass, $db);
 

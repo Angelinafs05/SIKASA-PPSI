@@ -26,3 +26,7 @@ config/database.php.bak
 Thumbs.db
 .DS_Store
 storage/*.session
+
+# Scratch & uploads
+scratch/
+backend/public/uploads/

@@ -1,6 +1,16 @@
 import React, { useState, useEffect } from 'react';
-import { Settings, Save, Search, Activity, CheckCircle, Plus, Trash2 } from 'lucide-react';
+import { Settings, Save, Search, Activity, CheckCircle, Plus, Trash2, ChevronDown, Info } from 'lucide-react';
 import api from '../../api/api';
+
+const PILIHAN_ASPEK = [
+    { label: 'Kehadiran / Presensi', kategori: 'absensi', desc: 'Otomatis dihitung dari persentase kehadiran pertemuan ekskul' },
+    { label: 'Keterampilan & Praktik', kategori: 'pertemuan', desc: 'Dihitung dari rata-rata nilai latihan per pertemuan' },
+    { label: 'Penguasaan Materi', kategori: 'pertemuan', desc: 'Dihitung dari rata-rata nilai latihan per pertemuan' },
+    { label: 'Kedisiplinan & Sikap', kategori: 'pertemuan', desc: 'Dihitung dari rata-rata nilai latihan per pertemuan' },
+    { label: 'Kerjasama Tim & Partisipasi', kategori: 'pertemuan', desc: 'Dihitung dari rata-rata nilai latihan per pertemuan' },
+    { label: 'Tugas / Proyek Ekskul', kategori: 'pertemuan', desc: 'Dihitung dari rata-rata nilai latihan per pertemuan' },
+    { label: 'Lainnya (Kustom)', kategori: 'kustom', desc: 'Tulis nama aspek secara manual' }
+];
 
 const PelatihBobotNilai = () => {
     const [aspects, setAspects] = useState([]);
@@ -32,7 +42,7 @@ const PelatihBobotNilai = () => {
     };
 
     const handleAddAspect = () => {
-        setAspects([...aspects, { id: null, nama_aspek: '', bobot: 0 }]);
+        setAspects([...aspects, { id: null, nama_aspek: 'Keterampilan & Praktik', bobot: 0, isCustom: false }]);
     };
 
     const handleRemoveAspect = (index) => {
@@ -44,6 +54,18 @@ const PelatihBobotNilai = () => {
     const handleAspectChange = (index, field, value) => {
         const newAspects = [...aspects];
         newAspects[index][field] = value;
+        setAspects(newAspects);
+    };
+
+    const handleSelectDropdown = (index, selectedVal) => {
+        const newAspects = [...aspects];
+        if (selectedVal === 'Lainnya (Kustom)') {
+            newAspects[index].isCustom = true;
+            newAspects[index].nama_aspek = '';
+        } else {
+            newAspects[index].isCustom = false;
+            newAspects[index].nama_aspek = selectedVal;
+        }
         setAspects(newAspects);
     };
 
@@ -64,8 +86,8 @@ const PelatihBobotNilai = () => {
                 return;
             }
 
-            if (aspects.some(a => !a.nama_aspek.trim())) {
-                setError(`Nama aspek wajib diisi untuk semua baris.`);
+            if (aspects.some(a => !a.nama_aspek || !a.nama_aspek.trim())) {
+                setError(`Nama aspek wajib dipilih / diisi untuk semua baris.`);
                 setSaving(false);
                 return;
             }
@@ -73,7 +95,7 @@ const PelatihBobotNilai = () => {
             const response = await api.post('/api/pelatih/bobot-nilai', { aspek: aspects });
             if (response.data.success) {
                 setSuccess('Bobot nilai berhasil disimpan!');
-                fetchData(); // Reload to get updated IDs if there were new items
+                fetchData();
                 setTimeout(() => setSuccess(''), 5000);
             } else {
                 setError(response.data.message || 'Gagal menyimpan bobot nilai');
@@ -106,7 +128,7 @@ const PelatihBobotNilai = () => {
                         Kelola Bobot Nilai
                     </h1>
                     <p className="text-slate-500 font-medium">
-                        Tentukan penamaan aspek penilaian dan persentasenya. Total persentase harus exactly 100%.
+                        Tentukan aspek penilaian ekskul dan persentase bobotnya. Pelatih bebas menentukan komposisi asalkan total bobot tepat 100%.
                     </p>
                 </div>
             </div>
@@ -132,7 +154,7 @@ const PelatihBobotNilai = () => {
                         <Activity size={20} /> Total Bobot Saat Ini
                     </h3>
                     <p className="text-sm font-medium mt-1">
-                        Sistem hanya akan menyimpan jika total bobot tepat 100%.
+                        {totalBobot === 100 ? 'Total bobot sudah pas 100%. Anda dapat menyimpan perubahan.' : 'Sistem hanya akan menyimpan jika total bobot tepat 100%.'}
                     </p>
                 </div>
                 <div className="text-4xl font-extrabold">
@@ -140,43 +162,95 @@ const PelatihBobotNilai = () => {
                 </div>
             </div>
 
+            {/* PETUNJUK SUMBER NILAI */}
+            <div className="bg-blue-50/70 border border-blue-100 p-5 rounded-2xl flex items-start gap-3.5 text-sm text-[#000080]">
+                <Info size={22} className="shrink-0 mt-0.5 text-blue-600" />
+                <div className="space-y-1">
+                    <p className="font-bold">Panduan Integrasi Penilaian:</p>
+                    <ul className="list-disc list-inside text-xs font-semibold text-slate-600 space-y-0.5">
+                        <li>Aspek <strong>"Kehadiran / Presensi"</strong> nilainya dihitung otomatis dari rekap absensi setiap siswa.</li>
+                        <li>Aspek lainnya (<strong>Keterampilan, Penguasaan Materi, Sikap, dll</strong>) dihitung otomatis dari akumulasi rata-rata nilai latihan per pertemuan.</li>
+                    </ul>
+                </div>
+            </div>
+
             {/* ASPECTS LIST */}
             <div className="bg-white border border-slate-200 rounded-[2.5rem] shadow-sm overflow-hidden p-8 space-y-6">
                 {aspects.length > 0 ? (
-                    aspects.map((aspect, index) => (
-                        <div key={index} className="flex flex-col md:flex-row items-center gap-4 bg-slate-50 p-4 border border-slate-100 rounded-2xl">
-                            <div className="w-full flex-1">
-                                <label className="block text-xs font-black text-slate-400 uppercase tracking-widest mb-1.5 ml-1">Nama Aspek</label>
-                                <input
-                                    type="text"
-                                    value={aspect.nama_aspek}
-                                    placeholder="Contoh: Kehadiran"
-                                    onChange={(e) => handleAspectChange(index, 'nama_aspek', e.target.value)}
-                                    className="block w-full px-4 py-3 bg-white border border-slate-200 rounded-xl leading-5 focus:outline-none focus:ring-4 focus:ring-blue-50 focus:border-[#000080] transition-all duration-200 font-semibold text-slate-700"
-                                />
+                    aspects.map((aspect, index) => {
+                        const isPreset = PILIHAN_ASPEK.some(p => p.label === aspect.nama_aspek && p.label !== 'Lainnya (Kustom)');
+                        const showCustomInput = aspect.isCustom || (!isPreset && aspect.nama_aspek !== '');
+                        const isAbsensi = aspect.nama_aspek && (aspect.nama_aspek.toLowerCase().includes('hadir') || aspect.nama_aspek.toLowerCase().includes('absen'));
+
+                        return (
+                            <div key={index} className="flex flex-col md:flex-row items-center gap-4 bg-slate-50 p-4 border border-slate-100 rounded-2xl hover:border-blue-100 transition-colors">
+                                <div className="w-full flex-1 space-y-2">
+                                    <div className="flex items-center justify-between">
+                                        <label className="block text-xs font-black text-slate-400 uppercase tracking-widest ml-1">
+                                            Aspek Penilaian
+                                        </label>
+                                        <span className={`text-[10px] font-black px-2.5 py-1 rounded-full uppercase tracking-wider ${isAbsensi ? 'bg-purple-100 text-purple-700' : 'bg-blue-100 text-blue-700'}`}>
+                                            {isAbsensi ? 'Otomatis dari Absensi' : 'Otomatis dari Nilai Pertemuan'}
+                                        </span>
+                                    </div>
+
+                                    {/* DROPDOWN SELECTOR */}
+                                    <div className="relative">
+                                        <select
+                                            value={showCustomInput ? 'Lainnya (Kustom)' : aspect.nama_aspek}
+                                            onChange={(e) => handleSelectDropdown(index, e.target.value)}
+                                            className="block w-full appearance-none px-4 py-3 bg-white border border-slate-200 rounded-xl leading-5 focus:outline-none focus:ring-4 focus:ring-blue-50 focus:border-[#000080] transition-all duration-200 font-bold text-slate-700 pr-10"
+                                        >
+                                            <option value="" disabled>-- Pilih Jenis Aspek --</option>
+                                            {PILIHAN_ASPEK.map((opt, oIdx) => (
+                                                <option key={oIdx} value={opt.label}>
+                                                    {opt.label} {opt.kategori === 'absensi' ? '(Rekap Absensi)' : opt.kategori === 'pertemuan' ? '(Latihan Harian)' : ''}
+                                                </option>
+                                            ))}
+                                        </select>
+                                        <ChevronDown size={18} className="absolute right-3.5 top-3.5 text-slate-400 pointer-events-none" />
+                                    </div>
+
+                                    {/* INPUT CUSTOM JIKA PILIH LAINNYA */}
+                                    {showCustomInput && (
+                                        <input
+                                            type="text"
+                                            value={aspect.nama_aspek}
+                                            placeholder="Tuliskan nama aspek khusus..."
+                                            onChange={(e) => handleAspectChange(index, 'nama_aspek', e.target.value)}
+                                            className="block w-full px-4 py-2.5 bg-white border border-dashed border-blue-300 rounded-xl leading-5 focus:outline-none focus:ring-4 focus:ring-blue-50 focus:border-[#000080] font-semibold text-slate-700 text-sm"
+                                            autoFocus={aspect.isCustom}
+                                        />
+                                    )}
+                                </div>
+
+                                <div className="w-full md:w-36">
+                                    <label className="block text-xs font-black text-slate-400 uppercase tracking-widest mb-1.5 ml-1">Bobot (%)</label>
+                                    <div className="relative">
+                                        <input
+                                            type="number"
+                                            min="0"
+                                            max="100"
+                                            value={aspect.bobot}
+                                            onChange={(e) => handleAspectChange(index, 'bobot', parseInt(e.target.value) || 0)}
+                                            className="block w-full px-4 py-3 bg-white border border-slate-200 rounded-xl leading-5 focus:outline-none focus:ring-4 focus:ring-blue-50 focus:border-[#000080] transition-all duration-200 font-black text-center text-[#000080] pr-8 text-lg"
+                                        />
+                                        <span className="absolute right-3.5 top-3.5 font-bold text-slate-400 text-sm">%</span>
+                                    </div>
+                                </div>
+
+                                <div className="w-full md:w-auto pt-6">
+                                    <button
+                                        onClick={() => handleRemoveAspect(index)}
+                                        className="w-full md:w-auto p-3.5 text-rose-500 hover:bg-rose-100 bg-rose-50 rounded-xl transition-all font-bold flex items-center justify-center"
+                                        title="Hapus Aspek"
+                                    >
+                                        <Trash2 size={20} />
+                                    </button>
+                                </div>
                             </div>
-                            <div className="w-full md:w-32">
-                                <label className="block text-xs font-black text-slate-400 uppercase tracking-widest mb-1.5 ml-1">Bobot (%)</label>
-                                <input
-                                    type="number"
-                                    min="0"
-                                    max="100"
-                                    value={aspect.bobot}
-                                    onChange={(e) => handleAspectChange(index, 'bobot', parseInt(e.target.value) || 0)}
-                                    className="block w-full px-4 py-3 bg-white border border-slate-200 rounded-xl leading-5 focus:outline-none focus:ring-4 focus:ring-blue-50 focus:border-[#000080] transition-all duration-200 font-black text-center text-[#000080]"
-                                />
-                            </div>
-                            <div className="w-full md:w-auto pt-5">
-                                <button
-                                    onClick={() => handleRemoveAspect(index)}
-                                    className="w-full md:w-auto p-3 text-rose-500 hover:bg-rose-100 bg-rose-50 rounded-xl transition-all font-bold flex items-center justify-center"
-                                    title="Hapus Aspek"
-                                >
-                                    <Trash2 size={20} />
-                                </button>
-                            </div>
-                        </div>
-                    ))
+                        );
+                    })
                 ) : (
                     <div className="text-center text-slate-400 py-10">
                         <p className="font-medium">Belum ada aspek penilaian yang dibuat.</p>

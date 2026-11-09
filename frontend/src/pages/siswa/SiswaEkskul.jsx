@@ -13,31 +13,71 @@ import {
     Info,
     Search,
     GraduationCap,
-    Calendar as CalendarIcon
+    Calendar as CalendarIcon,
+    AlertTriangle,
+    X,
+    HelpCircle
 } from 'lucide-react';
 import api from '../../api/api';
+
+// Helper parse range waktu (e.g. "14:00 - 15:30" atau "14.00-15.30")
+const parseTimeRange = (timeStr) => {
+    if (!timeStr) return null;
+    const clean = timeStr.replace(/\./g, ':');
+    const match = clean.match(/(\d{1,2}:\d{2})\s*[-–s\/d]+\s*(\d{1,2}:\d{2})/);
+    if (!match) return null;
+    const toMinutes = (s) => {
+        const [h, m] = s.split(':').map(Number);
+        return h * 60 + m;
+    };
+    return { start: toMinutes(match[1]), end: toMinutes(match[2]) };
+};
+
+// Logika cek tabrakan jadwal ekskul
+const checkScheduleConflict = (hari1, jam1, hari2, jam2) => {
+    if (!hari1 || !jam1 || !hari2 || !jam2) return false;
+    const h1List = hari1.toLowerCase().split(',').map(s => s.trim());
+    const h2List = hari2.toLowerCase().split(',').map(s => s.trim());
+    const sameDay = h1List.some(h => h2List.includes(h) && h !== '');
+    if (!sameDay) return false;
+
+    const r1 = parseTimeRange(jam1);
+    const r2 = parseTimeRange(jam2);
+    if (!r1 || !r2) return true; // Anggap bentrok jika hari sama tapi format jam bebas
+
+    // Formula overlap: start1 < end2 && start2 < end1
+    return (r1.start < r2.end) && (r2.start < r1.end);
+};
 
 const SiswaEkskul = () => {
     const navigate = useNavigate();
     const [ekskuls, setEkskuls] = useState([]);
+    const [myApprovedEkskuls, setMyApprovedEkskuls] = useState([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState('');
     const [searchTerm, setSearchTerm] = useState('');
-    const [processingId, setProcessingId] = useState(null);
-    const [successMessage, setSuccessMessage] = useState('');
+    const [conflictModal, setConflictModal] = useState(null); // { target: ekskul, conflictWith: ekskul }
 
     useEffect(() => {
-        fetchEkskuls();
+        fetchInitialData();
     }, []);
 
-    const fetchEkskuls = async () => {
+    const fetchInitialData = async () => {
         try {
             setLoading(true);
-            const response = await api.get('/api/siswa/ekskul');
-            if (response.data.success) {
-                setEkskuls(response.data.data);
+            const [resEkskul, resDashboard] = await Promise.all([
+                api.get('/api/siswa/ekskul'),
+                api.get('/api/siswa/dashboard')
+            ]);
+
+            if (resEkskul.data.success) {
+                setEkskuls(resEkskul.data.data);
             } else {
-                setError(response.data.message || 'Gagal mengambil daftar ekskul');
+                setError(resEkskul.data.message || 'Gagal mengambil daftar ekskul');
+            }
+
+            if (resDashboard.data.success) {
+                setMyApprovedEkskuls(resDashboard.data.data.my_ekskuls || []);
             }
         } catch (err) {
             setError(err.response?.data?.message || 'Terjadi kesalahan koneksi');
@@ -46,23 +86,27 @@ const SiswaEkskul = () => {
         }
     };
 
-    const handleDaftar = async (id) => {
-        try {
-            setProcessingId(id);
-            setError('');
-            setSuccessMessage('');
+    // Fungsi klik tombol "Daftar Sekarang"
+    const handleKlikDaftar = (targetEkskul) => {
+        // Cek apakah jadwal targetEkskul bertabrakan dengan ekskul yang sudah didaftar siswa
+        if (myApprovedEkskuls.length > 0) {
+            const bentrok = myApprovedEkskuls.find(my =>
+                String(my.ekskul_id || my.id) !== String(targetEkskul.id) &&
+                checkScheduleConflict(targetEkskul.hari, targetEkskul.jam, my.hari, my.jam)
+            );
 
-            const response = await api.post('/api/siswa/daftar', { ekskul_id: id });
-            if (response.data.success) {
-                setSuccessMessage('Pendaftaran berhasil! Silakan tunggu persetujuan pelatih.');
-                await fetchEkskuls(); // Refresh list to show 'pending' status
+            if (bentrok) {
+                // Munculkan notifikasi pop-up / modal bahwa jadwal bertabrakan dan arahkan pilih salah satu
+                setConflictModal({
+                    target: targetEkskul,
+                    conflictWith: bentrok
+                });
+                return;
             }
-        } catch (err) {
-            setError(err.response?.data?.message || 'Gagal mendaftar');
-            window.scrollTo({ top: 0, behavior: 'smooth' });
-        } finally {
-            setProcessingId(null);
         }
+
+        // Jika tidak bentrok, lanjut ke halaman formulir pendaftaran
+        navigate(`/siswa/daftar/${targetEkskul.id}`);
     };
 
     const filteredEkskuls = ekskuls.filter(e =>
@@ -99,90 +143,153 @@ const SiswaEkskul = () => {
             <div className="flex items-center justify-center min-h-[400px]">
                 <div className="flex flex-col items-center gap-4">
                     <div className="w-12 h-12 border-4 border-[#000080]/20 border-t-[#000080] rounded-full animate-spin"></div>
-                    <p className="font-bold text-slate-500 animate-pulse">Memuat daftar pilihan...</p>
+                    <p className="font-bold text-slate-500 animate-pulse">Memuat daftar ekstrakurikuler...</p>
                 </div>
             </div>
         );
     }
 
     return (
-        <div className="space-y-8 pb-10">
-            {/* SEARCH & HEADER */}
-            <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 px-2">
-                <div>
-                    <h1 className="text-3xl font-black text-[#000080] tracking-tight">Pilih Ekstrakurikuler</h1>
-                    <p className="text-slate-500 font-medium mt-1 uppercase text-xs tracking-[0.2em]">Explore your passion & potential</p>
-                </div>
+        <div className="space-y-8 font-sans pb-10">
+            {/* HEADER */}
+            <div className="bg-white rounded-[2.5rem] p-8 border border-slate-200 shadow-sm relative overflow-hidden">
+                <div className="absolute top-0 right-0 w-64 h-64 bg-[#000080]/5 rounded-full -mr-32 -mt-32 blur-3xl"></div>
+                <div className="relative z-10 flex flex-col md:flex-row md:items-center justify-between gap-6">
+                    <div>
+                        <div className="flex items-center gap-3 mb-2">
+                            <div className="p-2.5 bg-blue-50 text-[#000080] rounded-2xl">
+                                <Trophy size={26} />
+                            </div>
+                            <h1 className="text-3xl font-extrabold text-[#000080] tracking-tight">Pilihan Ekstrakurikuler</h1>
+                        </div>
+                        <p className="text-slate-500 font-medium">Temukan dan daftarkan diri pada ekstrakurikuler yang sesuai dengan minat dan bakatmu.</p>
+                    </div>
 
-                <div className="relative group w-full md:w-80">
-                    <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-300 group-focus-within:text-[#000080] transition-colors" size={20} />
-                    <input
-                        type="text"
-                        placeholder="Cari ekskul idamanmu..."
-                        value={searchTerm}
-                        onChange={(e) => setSearchTerm(e.target.value)}
-                        className="w-full bg-white border border-slate-200 rounded-[1.5rem] py-3 pl-12 pr-4 text-sm font-bold text-slate-700 outline-none focus:ring-4 focus:ring-blue-100 focus:border-[#000080] transition-all shadow-sm"
-                    />
+                    <div className="relative min-w-[280px]">
+                        <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none text-slate-400">
+                            <Search size={18} />
+                        </div>
+                        <input
+                            type="text"
+                            placeholder="Cari ekstrakurikuler..."
+                            value={searchTerm}
+                            onChange={(e) => setSearchTerm(e.target.value)}
+                            className="w-full pl-11 pr-4 py-3 bg-slate-50 border border-slate-200 rounded-2xl text-sm font-semibold text-slate-700 focus:bg-white focus:outline-none focus:ring-4 focus:ring-blue-50 focus:border-[#000080] transition-all"
+                        />
+                    </div>
                 </div>
             </div>
 
-            {/* MESSAGE BANNERS */}
             {error && (
-                <div className="bg-red-50 text-red-600 p-4 rounded-2xl flex items-center gap-3 border border-red-100 shadow-sm animate-shake">
+                <div className="bg-rose-50 text-rose-600 p-5 rounded-2xl flex items-center gap-3 border border-rose-100 font-bold text-sm">
                     <AlertCircle size={20} />
-                    <p className="text-sm font-bold">{error}</p>
-                </div>
-            )}
-            {successMessage && (
-                <div className="bg-emerald-50 text-emerald-600 p-4 rounded-2xl flex items-center gap-3 border border-emerald-100 shadow-sm">
-                    <CheckCircle2 size={20} />
-                    <p className="text-sm font-bold">{successMessage}</p>
+                    {error}
                 </div>
             )}
 
-            {/* INFO BANNER */}
-            <div className="bg-blue-50/50 border border-blue-100 rounded-[2rem] p-6 flex items-start gap-4">
-                <div className="p-3 bg-white rounded-2xl text-[#000080] shadow-sm">
-                    <Info size={24} />
-                </div>
-                <div>
-                    <h4 className="font-black text-[#000080] mb-1 uppercase text-sm tracking-wider">Pemberitahuan Penting</h4>
-                    <p className="text-sm text-blue-800/70 font-medium leading-relaxed">
-                        Setiap siswa diperbolehkan mengikuti maksimal <strong>4 kegiatan ekstrakurikuler</strong> dalam satu periode. Pastikan jadwal tidak saling bertabrakan ya!
-                    </p>
-                </div>
-            </div>
+            {/* MODAL NOTIFIKASI JADWAL BERTABRAKAN (BENTROK) */}
+            {conflictModal && (
+                <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm animate-fade-in">
+                    <div className="bg-white rounded-[2.5rem] max-w-lg w-full p-8 shadow-2xl border border-rose-100 relative overflow-hidden animate-scale-up">
+                        <div className="absolute top-0 right-0 w-40 h-40 bg-rose-500/10 rounded-full -mr-20 -mt-20 blur-2xl"></div>
 
-            {/* EKSKUL LIST - UNIFIED CARD STYLE */}
+                        <button
+                            onClick={() => setConflictModal(null)}
+                            className="absolute top-6 right-6 p-2 rounded-full text-slate-400 hover:text-slate-600 hover:bg-slate-100 transition-colors"
+                        >
+                            <X size={20} />
+                        </button>
+
+                        <div className="flex flex-col items-center text-center space-y-4">
+                            <div className="w-16 h-16 bg-rose-50 text-rose-600 rounded-3xl flex items-center justify-center shadow-inner border border-rose-100">
+                                <AlertTriangle size={36} />
+                            </div>
+
+                            <div className="inline-flex items-center gap-1.5 px-3 py-1 bg-rose-100 text-rose-700 rounded-full text-xs font-black uppercase tracking-wider">
+                                Jadwal Bertabrakan!
+                            </div>
+
+                            <h3 className="text-2xl font-black text-slate-800 tracking-tight">
+                                Waktu Latihan Bentrok
+                            </h3>
+
+                            <div className="text-sm text-slate-600 font-medium space-y-3 bg-slate-50 p-5 rounded-2xl border border-slate-100 text-left w-full">
+                                <div className="flex items-start gap-2.5">
+                                    <span className="w-2 h-2 rounded-full bg-blue-600 mt-2 shrink-0"></span>
+                                    <div>
+                                        <p className="text-xs text-slate-400 font-bold uppercase tracking-wider">Ekskul yang Sudah Anda Ikuti:</p>
+                                        <p className="font-extrabold text-[#000080]">
+                                            {conflictModal.conflictWith.nama_ekskul}
+                                        </p>
+                                        <p className="text-xs text-slate-600 font-semibold">
+                                            Hari {conflictModal.conflictWith.hari} • Jam {conflictModal.conflictWith.jam}
+                                        </p>
+                                    </div>
+                                </div>
+
+                                <div className="border-t border-slate-200/60 pt-2.5 flex items-start gap-2.5">
+                                    <span className="w-2 h-2 rounded-full bg-rose-600 mt-2 shrink-0"></span>
+                                    <div>
+                                        <p className="text-xs text-slate-400 font-bold uppercase tracking-wider">Ekskul yang Ingin Anda Daftar:</p>
+                                        <p className="font-extrabold text-rose-700">
+                                            {conflictModal.target.nama_ekskul}
+                                        </p>
+                                        <p className="text-xs text-slate-600 font-semibold">
+                                            Hari {conflictModal.target.hari} • Jam {conflictModal.target.jam}
+                                        </p>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div className="bg-amber-50 border border-amber-200/80 p-4 rounded-xl text-xs font-bold text-amber-900 text-left w-full flex items-start gap-2.5">
+                                <HelpCircle size={18} className="shrink-0 text-amber-600 mt-0.5" />
+                                <p className="leading-relaxed">
+                                    Karena kedua ekskul dilaksanakan pada hari dan jam yang bersamaan, Anda <strong>diarahkan untuk memilih salah satu</strong> dari ekskul tersebut agar jadwal latihan tidak saling mengganggu.
+                                </p>
+                            </div>
+
+                            <div className="w-full pt-2">
+                                <button
+                                    onClick={() => setConflictModal(null)}
+                                    className="w-full py-4 bg-[#000080] hover:bg-blue-900 text-white rounded-2xl font-black text-sm uppercase tracking-wider shadow-xl shadow-blue-900/20 active:scale-95 transition-all"
+                                >
+                                    Mengerti, Pilih Ekskul Lain
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {/* DAFTAR EKSKUL */}
             {filteredEkskuls.length > 0 ? (
                 <div className="grid grid-cols-1 gap-6">
                     {filteredEkskuls.map((item) => (
-                        <div key={item.id} className="bg-white border border-slate-200 rounded-[2.5rem] p-8 shadow-xl shadow-slate-200/50 hover:shadow-2xl hover:-translate-y-2 transition-all duration-500 group relative overflow-hidden">
-                            {/* Decorative Activity Icon Background */}
-                            <div className="absolute top-0 right-0 p-8 opacity-[0.03] group-hover:scale-125 transition-transform duration-1000">
-                                <Activity size={180} />
-                            </div>
-
-                            <div className="relative z-10 flex flex-col md:flex-row justify-between items-start md:items-center gap-6">
-                                <div className="space-y-5 flex-1">
-                                    <div className="flex items-center gap-4">
-                                        <div className="p-4 bg-[#000080] text-white rounded-[1.5rem] shadow-xl shadow-blue-900/30 transform group-hover:rotate-6 transition-transform">
-                                            <Trophy size={24} />
-                                        </div>
-                                        <div>
-                                            <h3 className="text-2xl font-black text-slate-800 uppercase tracking-tight group-hover:text-[#000080] transition-colors">{item.nama_ekskul}</h3>
-                                            <div className="flex items-center gap-3 mt-1.5">
-                                                {item.is_seleksi === 1 && (
-                                                    <span className="px-3 py-1 bg-amber-50 text-amber-600 rounded-full text-[10px] font-black uppercase tracking-widest border border-amber-100">
-                                                        Wajib Seleksi
-                                                    </span>
-                                                )}
-                                                <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Tersedia untuk Pendaftaran</span>
-                                            </div>
+                        <div
+                            key={item.id}
+                            className="bg-white rounded-[2.5rem] p-8 border border-slate-200/80 hover:border-blue-200 hover:shadow-xl hover:shadow-blue-900/5 transition-all duration-300 group"
+                        >
+                            <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6">
+                                <div className="space-y-4 flex-1">
+                                    <div>
+                                        <h3 className="text-2xl font-black text-slate-800 group-hover:text-[#000080] transition-colors tracking-tight">
+                                            {item.nama_ekskul}
+                                        </h3>
+                                        <div className="flex flex-wrap items-center gap-3 mt-1.5">
+                                            <span className="text-xs font-black text-slate-400 uppercase tracking-widest flex items-center gap-1.5">
+                                                <Users size={14} className="text-[#000080]" />
+                                                {item.total_siswa || 0} Siswa Terdaftar
+                                            </span>
+                                            {item.is_seleksi === 1 && (
+                                                <span className="px-2.5 py-0.5 bg-purple-50 text-purple-700 text-[10px] font-black uppercase tracking-wider rounded-md border border-purple-100">
+                                                    Ada Seleksi
+                                                </span>
+                                            )}
                                         </div>
                                     </div>
 
-                                    <div className="flex flex-wrap gap-8 pt-2">
+                                    {/* Grid Informasi Jadwal */}
+                                    <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 pt-2">
                                         <div className="flex items-center gap-4">
                                             <div className="w-11 h-11 rounded-2xl bg-blue-50 border border-blue-100 flex items-center justify-center text-[#000080] group-hover:scale-110 transition-transform">
                                                 <CalendarIcon size={20} />
@@ -259,7 +366,7 @@ const SiswaEkskul = () => {
                                         getStatusBadge(item.my_status)
                                     ) : (
                                         <button
-                                            onClick={() => navigate(`/siswa/daftar/${item.id}`)}
+                                            onClick={() => handleKlikDaftar(item)}
                                             className="w-full md:w-auto bg-[#000080] hover:bg-blue-900 text-white px-10 py-4 rounded-[1.5rem] font-black text-sm uppercase tracking-widest shadow-xl shadow-blue-900/20 active:scale-95 transition-all flex items-center justify-center gap-3 group/btn"
                                         >
                                             Daftar Sekarang <ChevronRight size={20} className="group-hover/btn:translate-x-1.5 transition-transform" />

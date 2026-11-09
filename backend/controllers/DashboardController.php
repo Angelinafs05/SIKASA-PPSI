@@ -158,9 +158,11 @@ class DashboardController
 
         // Data pelatih
         $stmt = $db->prepare("
-            SELECT p.*, e.nama_ekskul 
+            SELECT p.*, e.nama_ekskul, e.hari, e.jam, e.tempat, e.target_kelas, e.is_seleksi,
+                   g.nama_guru AS pendamping
             FROM pelatih p 
             LEFT JOIN ekstrakurikuler e ON p.ekskul_id = e.id 
+            LEFT JOIN guru_pendamping g ON p.guru_id = g.id
             WHERE p.id = :id
         ");
         $stmt->execute([':id' => $user->ref_id]);
@@ -207,15 +209,44 @@ class DashboardController
         $tahun = $period['tahun_ajaran'];
         $sem = $period['semester'];
 
-        // Ekskul yang didampingi in this period
+        // Ekskul yang didampingi in this period (mencocokkan baik via e.id maupun nama_ekskul)
         $stmt2 = $db->prepare("
-            SELECT e.*, p.nama_pelatih 
+            SELECT DISTINCT e.*, p.nama_pelatih, p.id as pelatih_id,
+                   (SELECT COUNT(*) FROM pendaftaran_ekskul pe WHERE pe.ekskul_id = e.id AND pe.status = 'approved' AND pe.tahun_ajaran = :t1 AND pe.semester = :s1) as jumlah_siswa,
+                   (SELECT COUNT(DISTINCT tanggal) FROM absensi a WHERE a.id_pelatih = p.id AND a.tahun_ajaran = :t2 AND a.semester = :s2) as total_pertemuan
             FROM ekstrakurikuler e
-            JOIN pelatih p ON p.ekskul_id = e.id
-            WHERE p.guru_id = :id AND e.tahun_ajaran = :t AND e.semester = :s
+            JOIN pelatih p ON (p.ekskul_id = e.id OR p.ekskul_id IN (SELECT id FROM ekstrakurikuler WHERE nama_ekskul = e.nama_ekskul))
+            WHERE p.guru_id = :id AND e.tahun_ajaran = :t3 AND e.semester = :s3
+            ORDER BY e.nama_ekskul ASC
         ");
-        $stmt2->execute([':id' => $user->ref_id, ':t' => $tahun, ':s' => $sem]);
+        $stmt2->execute([
+            ':id' => $user->ref_id,
+            ':t1' => $tahun, ':s1' => $sem,
+            ':t2' => $tahun, ':s2' => $sem,
+            ':t3' => $tahun, ':s3' => $sem
+        ]);
         $ekskuls = $stmt2->fetchAll();
+
+        // Ambil daftar siswa yang mendaftar / terdaftar untuk tiap ekskul
+        $stmt_siswa_ekskul = $db->prepare("
+            SELECT pe.id as pendaftaran_id, pe.ekskul_id, pe.status, pe.tanggal_daftar,
+                   s.id as siswa_id, s.nama_siswa, s.no_induk, k.nama_kelas
+            FROM pendaftaran_ekskul pe
+            JOIN siswa s ON pe.siswa_id = s.id
+            LEFT JOIN kelas k ON s.kelas_id = k.id
+            WHERE pe.ekskul_id = :eid AND pe.tahun_ajaran = :t AND pe.semester = :s
+            ORDER BY k.nama_kelas ASC, s.nama_siswa ASC
+        ");
+
+        foreach ($ekskuls as &$eks) {
+            $stmt_siswa_ekskul->execute([
+                ':eid' => $eks['id'],
+                ':t'   => $tahun,
+                ':s'   => $sem
+            ]);
+            $eks['daftar_siswa'] = $stmt_siswa_ekskul->fetchAll();
+        }
+        unset($eks);
 
         $totalSiswa = 0;
         if (!empty($ekskuls)) {

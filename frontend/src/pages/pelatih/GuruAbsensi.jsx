@@ -246,7 +246,7 @@ const GuruAbsensi = () => {
                                             </span>
                                             {siswa.surat_ijin && siswa.status_absensi === 'Izin' && (
                                                 <a
-                                                    href={`http://localhost/SIKASA/backend/${siswa.surat_ijin}`}
+                                                    href={`http://localhost/SIKASA%20PPSI/backend/${siswa.surat_ijin}`}
                                                     target="_blank"
                                                     rel="noopener noreferrer"
                                                     className="block mt-2 text-[10px] font-bold text-indigo-600 hover:underline"

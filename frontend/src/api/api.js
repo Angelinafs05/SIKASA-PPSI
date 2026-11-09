@@ -1,6 +1,6 @@
 import axios from 'axios';
 
-const API_BASE_URL = 'http://localhost/SIKASA/backend';
+const API_BASE_URL = 'http://localhost/SIKASA%20PPSI/backend';
 
 const api = axios.create({
   baseURL: API_BASE_URL,

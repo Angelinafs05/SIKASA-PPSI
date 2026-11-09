@@ -134,7 +134,7 @@ const SiswaLomba = () => {
                                                     <p className="text-xs text-slate-500 ml-6">Tanggal: {new Date(lomba.parent_approval_date).toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' })}</p>
                                                 )}
                                                 {lomba.parent_approval_file && (
-                                                    <a href={`http://localhost/SIKASA/backend/${lomba.parent_approval_file}`} target="_blank" rel="noopener noreferrer" className="text-xs font-bold text-blue-600 hover:underline flex items-center gap-1 ml-6">
+                                                    <a href={`http://localhost/SIKASA%20PPSI/backend/${lomba.parent_approval_file}`} target="_blank" rel="noopener noreferrer" className="text-xs font-bold text-blue-600 hover:underline flex items-center gap-1 ml-6">
                                                         <Download size={12}/> Lihat Surat Persetujuan
                                                     </a>
                                                 )}
@@ -156,7 +156,7 @@ const SiswaLomba = () => {
                                     </div>
 
                                     {lomba.surat_edaran && (
-                                        <a href={`http://localhost/SIKASA/backend/${lomba.surat_edaran}`} target="_blank" rel="noopener noreferrer" className="flex items-center justify-center gap-2 w-full py-2.5 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 border border-indigo-200 rounded-xl text-sm font-bold transition-colors">
+                                        <a href={`http://localhost/SIKASA%20PPSI/backend/${lomba.surat_edaran}`} target="_blank" rel="noopener noreferrer" className="flex items-center justify-center gap-2 w-full py-2.5 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 border border-indigo-200 rounded-xl text-sm font-bold transition-colors">
                                             <Download size={16}/> Unduh Surat Edaran Sekolah
                                         </a>
                                     )}

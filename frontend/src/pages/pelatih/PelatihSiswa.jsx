@@ -60,7 +60,7 @@ const PelatihSiswa = () => {
     return (
         <div className="space-y-8 font-sans pb-10">
             {/* HEADER */}
-            <div className="flex flex-col md:flex-row md:items-end justify-between gap-6 border-b border-slate-200 pb-8">
+            <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-6 border-b border-slate-200 pb-8">
                 <div className="space-y-2">
                     <div className="flex items-center gap-2 mb-1">
                         <div className="px-3 py-1 bg-blue-50 text-[#000080] text-[10px] font-black uppercase tracking-widest rounded-full border border-blue-100 flex items-center gap-1.5">
@@ -79,17 +79,35 @@ const PelatihSiswa = () => {
                     </p>
                 </div>
 
-                <div className="relative w-full md:w-80 group">
-                    <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
-                        <Search className="h-5 w-5 text-slate-400 group-focus-within:text-[#000080] transition-colors" />
+                {/* HEADER RIGHT: TOTAL KEANGGOTAAN CARD + SEARCH */}
+                <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-4">
+                    {/* TOTAL KEANGGOTAAN BADGE/CARD */}
+                    <div className="bg-[#000080] text-white px-5 py-3 rounded-2xl shadow-md shadow-blue-900/10 flex items-center gap-4 relative overflow-hidden">
+                        <div className="w-10 h-10 bg-white/10 rounded-xl flex items-center justify-center backdrop-blur-md border border-white/20 shrink-0">
+                            <Activity className="text-white" size={20} />
+                        </div>
+                        <div>
+                            <p className="text-[9px] font-black text-blue-200 uppercase tracking-widest leading-none mb-1">Total Keanggotaan</p>
+                            <div className="flex items-baseline gap-1.5 leading-none">
+                                <span className="text-2xl font-black tabular-nums">{filteredStudents.length}</span>
+                                <span className="text-[10px] font-bold text-blue-200 uppercase">Siswa Aktif</span>
+                            </div>
+                        </div>
                     </div>
-                    <input
-                        type="text"
-                        placeholder="Cari nama atau kelas..."
-                        value={searchTerm}
-                        onChange={(e) => setSearchTerm(e.target.value)}
-                        className="block w-full pl-11 pr-4 py-3 bg-white border border-slate-200 rounded-2xl leading-5 focus:outline-none focus:ring-4 focus:ring-blue-50 focus:border-[#000080] transition-all duration-200 font-medium text-slate-700 shadow-sm"
-                    />
+
+                    {/* SEARCH INPUT */}
+                    <div className="relative w-full sm:w-64 group">
+                        <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
+                            <Search className="h-5 w-5 text-slate-400 group-focus-within:text-[#000080] transition-colors" />
+                        </div>
+                        <input
+                            type="text"
+                            placeholder="Cari nama atau kelas..."
+                            value={searchTerm}
+                            onChange={(e) => setSearchTerm(e.target.value)}
+                            className="block w-full pl-11 pr-4 py-3 bg-white border border-slate-200 rounded-2xl leading-5 focus:outline-none focus:ring-4 focus:ring-blue-50 focus:border-[#000080] transition-all duration-200 font-medium text-slate-700 shadow-sm"
+                        />
+                    </div>
                 </div>
             </div>
 
@@ -136,7 +154,7 @@ const PelatihSiswa = () => {
                                     </td>
                                     <td className="px-8 py-5 text-right font-bold text-slate-500 text-sm">
                                         {new Date(siswa.tanggal_daftar).toLocaleDateString('id-ID', {
-                                            day: '2-digit', month: 'short', year: 'numeric'
+                                             day: '2-digit', month: 'short', year: 'numeric'
                                         })}
                                     </td>
                                 </tr>
@@ -154,25 +172,6 @@ const PelatihSiswa = () => {
                         )}
                     </tbody>
                 </table>
-            </div>
-
-            {/* SUMMARY CARD */}
-            <div className="flex justify-end">
-                <div className="bg-[#000080] text-white p-6 rounded-[2rem] shadow-xl shadow-blue-900/20 inline-flex items-center gap-6 relative overflow-hidden">
-                    <div className="absolute top-0 right-0 p-4 opacity-10 scale-150 rotate-12">
-                        <Users size={80} />
-                    </div>
-                    <div className="relative z-10">
-                        <p className="text-[10px] font-black text-blue-200 uppercase tracking-[0.2em] mb-1">Total Keanggotaan</p>
-                        <div className="flex items-baseline gap-2">
-                            <span className="text-4xl font-black tabular-nums tracking-tighter">{filteredStudents.length}</span>
-                            <span className="text-xs font-bold text-blue-200 uppercase">Siswa Aktif</span>
-                        </div>
-                    </div>
-                    <div className="w-14 h-14 bg-white/10 rounded-2xl flex items-center justify-center backdrop-blur-md border border-white/20 relative z-10">
-                        <Activity className="text-white" size={28} />
-                    </div>
-                </div>
             </div>
         </div>
     );

@@ -15,6 +15,8 @@ import {
     Wallet,
     UserPlus,
     FileText,
+    CalendarDays,
+    Calendar,
     X
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
@@ -28,53 +30,89 @@ const Sidebar = ({ isOpen, setIsOpen }) => {
             case 'admin':
                 return [
                     { path: '/admin', icon: <LayoutDashboard size={20} />, label: 'Dashboard' },
-                    { path: '/admin/ekskul', icon: <Activity size={20} />, label: 'Data Ekskul' },
-                    { path: '/admin/pelatih', icon: <UserRound size={20} />, label: 'Data Pelatih' },
-                    { path: '/admin/guru', icon: <UserRound size={20} />, label: 'Guru Pendamping' },
+                    { path: '/admin/tahun-ajaran', icon: <CalendarDays size={20} />, label: 'Tahun Ajaran' },
+                    // Master Data
                     { path: '/admin/siswa', icon: <Users size={20} />, label: 'Data Siswa' },
-                    { path: '/admin/orang-tua', icon: <UserPlus size={20} />, label: 'Data Orangtua' },
-                    { path: '/admin/lomba', icon: <Trophy size={20} />, label: 'Delegasi Lomba' },
-                    { path: '/admin/persetujuan', icon: <FileText size={20} />, label: 'Pendaftaran' },
-                    { path: '/admin/honor', icon: <Wallet size={20} />, label: 'Honor Pelatih' },
+                    { path: '/admin/kelas', icon: <GraduationCap size={20} />, label: 'Data Kelas' },
+                    { path: '/admin/ekskul', icon: <Activity size={20} />, label: 'Data Ekstrakurikuler' },
+                    { path: '/admin/pelatih', icon: <UserRound size={20} />, label: 'Data Pelatih' },
+                    { path: '/admin/guru', icon: <UserRound size={20} />, label: 'Data Guru Pendamping' },
+                    // Pendaftaran Ekstrakurikuler
+                    { path: '/admin/persetujuan', icon: <ClipboardCheck size={20} />, label: 'Pendaftaran Ekstrakurikuler' },
+                    // Absensi
+                    { path: '/admin/absensi', icon: <ChevronRight size={20} />, label: 'Lihat Absensi' },
+                    { path: '/admin/rekap-absensi', icon: <FileText size={20} />, label: 'Rekap Absensi' },
+                    // Izin
+                    { path: '/admin/izin', icon: <FileText size={20} />, label: 'Kelola Izin' },
+                    // Penilaian
+                    { path: '/admin/nilai', icon: <Trophy size={20} />, label: 'Lihat Nilai' },
+                    { path: '/admin/rekap-nilai', icon: <Trophy size={20} />, label: 'Rekap Nilai' },
+                    // Monitoring
                     { path: '/admin/monitoring', icon: <Monitor size={20} />, label: 'Monitoring' },
-                    { path: '/admin/bobot-nilai', icon: <History size={20} />, label: 'Bobot Nilai' },
+                    // Laporan
+                    { path: '/admin/rekap-absensi?tab=laporan', icon: <FileText size={20} />, label: 'Laporan Absensi' },
+                    { path: '/admin/laporan-nilai', icon: <FileText size={20} />, label: 'Laporan Nilai' },
                 ];
             case 'pelatih':
                 return [
                     { path: '/pelatih', icon: <LayoutDashboard size={20} />, label: 'Dashboard' },
-                    { path: '/pelatih/siswa', icon: <Users size={20} />, label: 'Siswa Ekskul' },
-                    ...(user?.is_external ? [] : [{ path: '/pelatih/absensi', icon: <ChevronRight size={20} />, label: 'Absensi' }]),
+                    // Ekstrakurikuler
+                    { path: '/pelatih/jadwal', icon: <Calendar size={20} />, label: 'Jadwal Ekstrakurikuler' },
+                    { path: '/pelatih/siswa', icon: <Users size={20} />, label: 'Data Siswa Ekskul' },
+                    // Absensi
+                    { path: '/pelatih/absensi', icon: <ChevronRight size={20} />, label: 'Input Absensi' },
+                    // Penilaian
                     { path: '/pelatih/bobot-nilai', icon: <History size={20} />, label: 'Bobot Nilai' },
                     { path: '/pelatih/nilai', icon: <Trophy size={20} />, label: 'Input Nilai' },
-                    { path: '/pelatih/honor', icon: <Wallet size={20} />, label: 'Riwayat Honor' },
+                    // Monitoring
+                    { path: '/pelatih/monitoring-nilai', icon: <Monitor size={20} />, label: 'Perkembangan Nilai' },
+                    // Profil
                     { path: '/pelatih/profil', icon: <UserRound size={20} />, label: 'Profil Saya' },
                 ];
             case 'pendamping':
                 return [
                     { path: '/pendamping', icon: <LayoutDashboard size={20} />, label: 'Dashboard' },
-                    { path: '/pendamping/absensi', icon: <ChevronRight size={20} />, label: 'Absensi' },
-                    { path: '/pendamping/nilai', icon: <Trophy size={20} />, label: 'Nilai' },
+                    // Ekstrakurikuler & Siswa
+                    { path: '/pendamping/ekskul', icon: <Activity size={20} />, label: 'Ekskul Didampingi' },
+                    // Absensi
+                    { path: '/pendamping/absensi', icon: <ChevronRight size={20} />, label: 'Input / Lihat Absensi' },
+                    { path: '/pendamping/rekap-absensi', icon: <FileText size={20} />, label: 'Rekap Absensi' },
+                    // Izin
+                    { path: '/pendamping/izin', icon: <FileText size={20} />, label: 'Lihat Izin' },
+                    // Penilaian
+                    { path: '/pendamping/nilai', icon: <Trophy size={20} />, label: 'Monitoring Nilai' },
+                    // Profil
+                    { path: '/pendamping/profil', icon: <UserRound size={20} />, label: 'Profil Saya' },
                 ];
             case 'siswa':
                 return [
                     { path: '/siswa', icon: <LayoutDashboard size={20} />, label: 'Dashboard' },
-                    { path: '/siswa/lomba', icon: <Trophy size={20} />, label: 'Delegasi Lomba' },
-                    { path: '/siswa/ekskul', icon: <Trophy size={20} />, label: 'Pilih Ekskul' },
-                    { path: '/siswa/kehadiran', icon: <ClipboardCheck size={20} />, label: 'Kehadiran' },
+                    // Ekstrakurikuler
+                    { path: '/siswa/ekskul', icon: <Activity size={20} />, label: 'Daftar Ekstrakurikuler' },
+                    // Jadwal / Kegiatan
+                    { path: '/siswa/jadwal', icon: <ClipboardCheck size={20} />, label: 'Lihat Jadwal' },
+                    // Izin
+                    { path: '/siswa/izin', icon: <FileText size={20} />, label: 'Ajukan Izin' },
+                    // Absensi
+                    { path: '/siswa/kehadiran', icon: <ChevronRight size={20} />, label: 'Riwayat Absensi' },
+                    // Nilai
+                    { path: '/siswa/nilai', icon: <Trophy size={20} />, label: 'Lihat Nilai' },
+                    // Profil
                     { path: '/siswa/profil', icon: <UserRound size={20} />, label: 'Profil Saya' },
-                ];
-            case 'orang_tua':
-                return [
-                    { path: '/orang_tua', icon: <LayoutDashboard size={20} />, label: 'Dashboard' },
-                    { path: '/orang_tua/profil', icon: <UserRound size={20} />, label: 'Profil Saya' },
                 ];
             case 'kepala_sekolah':
                 return [
                     { path: '/kepala_sekolah', icon: <LayoutDashboard size={20} />, label: 'Dashboard' },
-                    { path: '/kepala_sekolah/monitoring', icon: <Monitor size={20} />, label: 'Monitoring' },
-                    { path: '/kepala_sekolah/lomba', icon: <Trophy size={20} />, label: 'Laporan Lomba' },
-                    { path: '/kepala_sekolah/honor', icon: <Wallet size={20} />, label: 'Laporan Honor' },
-                    { path: '/kepala_sekolah/pelatih', icon: <UserRound size={20} />, label: 'Daftar Pelatih' },
+                    // Monitoring
+                    { path: '/kepala_sekolah/monitoring', icon: <Monitor size={20} />, label: 'Monitoring Ekskul' },
+                    { path: '/kepala_sekolah/monitoring-siswa', icon: <Users size={20} />, label: 'Data Siswa' },
+                    { path: '/kepala_sekolah/absensi', icon: <ChevronRight size={20} />, label: 'Kehadiran' },
+                    { path: '/kepala_sekolah/nilai', icon: <Trophy size={20} />, label: 'Nilai' },
+                    // Laporan
+                    { path: '/kepala_sekolah/laporan-absensi', icon: <FileText size={20} />, label: 'Laporan Absensi' },
+                    { path: '/kepala_sekolah/laporan-nilai', icon: <FileText size={20} />, label: 'Laporan Nilai' },
+                    // Profil
+                    { path: '/kepala_sekolah/profil', icon: <UserRound size={20} />, label: 'Profil Saya' },
                 ];
             default:
                 return [];

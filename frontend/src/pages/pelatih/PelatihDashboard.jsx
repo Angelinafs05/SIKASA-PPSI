@@ -9,7 +9,8 @@ import {
     Award,
     Activity,
     UserCheck,
-    AlertCircle
+    AlertCircle,
+    MapPin
 } from 'lucide-react';
 import api from '../../api/api';
 import { useAuth } from '../../context/AuthContext';
@@ -184,6 +185,27 @@ const PelatihDashboard = () => {
                                 </div>
                             )}
                             <div className="space-y-1">
+                                <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Jadwal Hari</p>
+                                <p className="font-bold text-[#000080] flex items-center gap-1.5">
+                                    <Calendar size={14} className="text-blue-500" />
+                                    {data?.pelatih?.hari || 'Belum ditentukan'}
+                                </p>
+                            </div>
+                            <div className="space-y-1">
+                                <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Waktu / Jam</p>
+                                <p className="font-bold text-slate-800 flex items-center gap-1.5">
+                                    <Clock size={14} className="text-slate-400" />
+                                    {data?.pelatih?.jam || '-'}
+                                </p>
+                            </div>
+                            <div className="space-y-1">
+                                <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Lokasi / Ruangan</p>
+                                <p className="font-bold text-slate-800 flex items-center gap-1.5">
+                                    <MapPin size={14} className="text-slate-400" />
+                                    {data?.pelatih?.tempat ? `R. ${data?.pelatih?.tempat}` : '-'}
+                                </p>
+                            </div>
+                            <div className="space-y-1">
                                 <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Kontak Admin</p>
                                 <p className="font-bold text-slate-800">Hubungi Sekolah</p>
                             </div>
@@ -255,7 +277,7 @@ const PelatihDashboard = () => {
                                         </div>
                                         {izin.surat_ijin && (
                                             <a
-                                                href={`http://localhost/SIKASA/backend/${izin.surat_ijin}`}
+                                                href={`http://localhost/SIKASA%20PPSI/backend/${izin.surat_ijin}`}
                                                 target="_blank"
                                                 rel="noopener noreferrer"
                                                 className="inline-flex items-center gap-2 bg-orange-50 hover:bg-orange-100 text-orange-600 px-4 py-2 rounded-xl text-sm font-bold border border-orange-200 transition-colors shrink-0"
@@ -295,7 +317,7 @@ const PelatihDashboard = () => {
                                             </div>
                                             {izin.surat_ijin && (
                                                 <a
-                                                    href={`http://localhost/SIKASA/backend/${izin.surat_ijin}`}
+                                                    href={`http://localhost/SIKASA%20PPSI/backend/${izin.surat_ijin}`}
                                                     target="_blank"
                                                     rel="noopener noreferrer"
                                                     className="inline-flex items-center gap-1.5 text-blue-600 hover:text-blue-800 text-xs font-bold transition-colors shrink-0"

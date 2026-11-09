@@ -1,12 +1,41 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { Trophy, Calendar, Clock, MapPin, User, Upload, CheckCircle2, AlertCircle, ArrowLeft, Camera } from 'lucide-react';
+import { Trophy, Calendar, Clock, MapPin, User, Upload, CheckCircle2, AlertCircle, ArrowLeft, Camera, AlertTriangle, HelpCircle } from 'lucide-react';
 import api from '../../api/api';
+
+// Helper parsing range waktu (e.g. "14:00 - 15:30")
+const parseTimeRange = (timeStr) => {
+    if (!timeStr) return null;
+    const clean = timeStr.replace(/\./g, ':');
+    const match = clean.match(/(\d{1,2}:\d{2})\s*[-–s\/d]+\s*(\d{1,2}:\d{2})/);
+    if (!match) return null;
+    const toMinutes = (s) => {
+        const [h, m] = s.split(':').map(Number);
+        return h * 60 + m;
+    };
+    return { start: toMinutes(match[1]), end: toMinutes(match[2]) };
+};
+
+const checkConflict = (hari1, jam1, hari2, jam2) => {
+    if (!hari1 || !jam1 || !hari2 || !jam2) return false;
+    const h1List = hari1.toLowerCase().split(',').map(s => s.trim());
+    const h2List = hari2.toLowerCase().split(',').map(s => s.trim());
+    const sameDay = h1List.some(h => h2List.includes(h) && h !== '');
+    if (!sameDay) return false;
+
+    const r1 = parseTimeRange(jam1);
+    const r2 = parseTimeRange(jam2);
+    if (!r1 || !r2) return true; // Anggap bentrok jika hari sama tapi format jam bebas
+
+    return (r1.start < r2.end) && (r2.start < r1.end);
+};
 
 const SiswaDaftarForm = () => {
     const { id } = useParams();
     const navigate = useNavigate();
     const [ekskul, setEkskul] = useState(null);
+    const [myEkskuls, setMyEkskuls] = useState([]);
+    const [conflictEkskul, setConflictEkskul] = useState(null);
     const [loading, setLoading] = useState(true);
     const [submitting, setSubmitting] = useState(false);
     const [error, setError] = useState('');
@@ -14,16 +43,40 @@ const SiswaDaftarForm = () => {
     const [preview, setPreview] = useState(null);
 
     useEffect(() => {
-        fetchEkskulDetail();
+        fetchInitialData();
     }, [id]);
 
-    const fetchEkskulDetail = async () => {
+    const fetchInitialData = async () => {
         try {
-            const response = await api.get(`/api/siswa/ekskul/${id}`);
-            if (response.data.success) {
-                setEkskul(response.data.data);
+            setLoading(true);
+            const [resTarget, resDashboard] = await Promise.all([
+                api.get(`/api/siswa/ekskul/${id}`),
+                api.get('/api/siswa/dashboard')
+            ]);
+
+            let target = null;
+            if (resTarget.data.success) {
+                target = resTarget.data.data;
+                setEkskul(target);
             } else {
                 setError('Gagal mengambil data ekstrakurikuler');
+            }
+
+            let myApproved = [];
+            if (resDashboard.data.success) {
+                myApproved = resDashboard.data.data.my_ekskuls || [];
+                setMyEkskuls(myApproved);
+            }
+
+            // Validasi tabrakan / bentrok jadwal
+            if (target && myApproved.length > 0) {
+                const bentrok = myApproved.find(my =>
+                    String(my.ekskul_id || my.id) !== String(target.id) &&
+                    checkConflict(target.hari, target.jam, my.hari, my.jam)
+                );
+                if (bentrok) {
+                    setConflictEkskul(bentrok);
+                }
             }
         } catch (err) {
             setError('Terjadi kesalahan koneksi');
@@ -46,6 +99,12 @@ const SiswaDaftarForm = () => {
 
     const handleSubmit = async (e) => {
         e.preventDefault();
+
+        if (conflictEkskul) {
+            setError(`Jadwal bertabrakan dengan ekskul ${conflictEkskul.nama_ekskul}. Anda harus memilih salah satu.`);
+            return;
+        }
+
         if (!file) {
             setError('Harap unggah foto surat izin orang tua');
             return;
@@ -93,13 +152,60 @@ const SiswaDaftarForm = () => {
     }
 
     return (
-        <div className="max-w-4xl mx-auto space-y-8 pb-10">
+        <div className="max-w-4xl mx-auto space-y-8 pb-10 font-sans">
             <button
                 onClick={() => navigate('/siswa/ekskul')}
                 className="flex items-center gap-2 text-slate-500 hover:text-[#000080] font-bold transition-colors group"
             >
-                <ArrowLeft size={20} className="group-hover:-translate-x-1 transition-transform" /> Kembali ke Daftar
+                <ArrowLeft size={20} className="group-hover:-translate-x-1 transition-transform" /> Kembali ke Daftar Ekskul
             </button>
+
+            {/* MODAL / BANNER PERINGATAN JADWAL BERTABRAKAN */}
+            {conflictEkskul && (
+                <div className="bg-gradient-to-br from-rose-50 to-orange-50 border-2 border-rose-300 rounded-[2.5rem] p-8 shadow-xl relative overflow-hidden animate-shake">
+                    <div className="flex flex-col md:flex-row items-start gap-6">
+                        <div className="w-16 h-16 bg-rose-100 text-rose-600 rounded-2xl flex items-center justify-center shrink-0 shadow-inner">
+                            <AlertTriangle size={36} />
+                        </div>
+                        <div className="space-y-3 flex-1">
+                            <div className="inline-flex items-center gap-2 px-3 py-1 bg-rose-200/60 text-rose-800 rounded-full text-xs font-black uppercase tracking-wider">
+                                Peringatan: Jadwal Bertabrakan (Bentrok)
+                            </div>
+                            <h2 className="text-2xl font-black text-rose-900 tracking-tight">
+                                Waktu Latihan Bertabrakan!
+                            </h2>
+                            <p className="text-rose-800 font-semibold text-sm leading-relaxed">
+                                Anda sudah terdaftar pada ekstrakurikuler <strong className="underline decoration-rose-500 decoration-2">{conflictEkskul.nama_ekskul}</strong> dengan jadwal latihan hari <strong>{conflictEkskul.hari}</strong> pukul <strong>{conflictEkskul.jam}</strong>.
+                            </p>
+                            <p className="text-rose-800 font-semibold text-sm leading-relaxed">
+                                Ekskul <strong className="underline decoration-rose-500 decoration-2">{ekskul.nama_ekskul}</strong> yang ingin Anda daftar juga dilaksanakan pada hari <strong>{ekskul.hari}</strong> pukul <strong>{ekskul.jam}</strong>.
+                            </p>
+                            <div className="bg-white/80 backdrop-blur-sm p-4 rounded-2xl border border-rose-200 text-xs font-bold text-slate-700 space-y-1">
+                                <p className="text-rose-700 font-black flex items-center gap-1.5 uppercase tracking-wide">
+                                    <HelpCircle size={15} /> Arahan Sistem:
+                                </p>
+                                <p>
+                                    Anda <strong>hanya dapat memilih salah satu</strong> dari kedua ekstrakurikuler tersebut agar kehadiran dan jadwal latihan Anda tidak saling mengganggu.
+                                </p>
+                            </div>
+                            <div className="flex flex-wrap items-center gap-3 pt-2">
+                                <button
+                                    onClick={() => navigate('/siswa/ekskul')}
+                                    className="px-6 py-3 bg-rose-600 hover:bg-rose-700 text-white rounded-xl font-black text-xs uppercase tracking-widest shadow-md shadow-rose-600/30 active:scale-95 transition-all"
+                                >
+                                    Pilih Ekskul Lain
+                                </button>
+                                <button
+                                    onClick={() => navigate('/siswa')}
+                                    className="px-6 py-3 bg-white hover:bg-slate-50 text-slate-700 rounded-xl font-bold text-xs border border-slate-200 shadow-sm active:scale-95 transition-all"
+                                >
+                                    Kembali ke Dashboard Saya
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            )}
 
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
                 {/* LEFT: EKSKUL INFO */}
@@ -145,7 +251,7 @@ const SiswaDaftarForm = () => {
                                     <div className="w-8 h-8 rounded-lg bg-slate-50 flex items-center justify-center text-emerald-600">
                                         <MapPin size={16} />
                                     </div>
-                                    <p className="text-sm font-bold">R. {ekskul.tempat || '-'}</p>
+                                    <p className="text-sm font-bold">{ekskul.tempat ? `R. ${ekskul.tempat}` : '-'}</p>
                                 </div>
                                 <div className="flex items-center gap-3 text-slate-600">
                                     <div className="w-8 h-8 rounded-lg bg-slate-50 flex items-center justify-center text-rose-600">
@@ -167,7 +273,7 @@ const SiswaDaftarForm = () => {
 
                         <h1 className="text-2xl font-black text-slate-800 tracking-tight">Form Pendaftaran</h1>
                         <p className="text-slate-500 font-medium max-w-md mt-2 mb-8">
-                            Harap unggah foto **Surat Izin Orang Tua** yang sudah ditandatangani untuk melanjutkan pendaftaran.
+                            Harap unggah foto <strong>Surat Izin Orang Tua</strong> yang sudah ditandatangani untuk melanjutkan pendaftaran.
                         </p>
 
                         {error && (
@@ -181,11 +287,12 @@ const SiswaDaftarForm = () => {
                         <div className="w-full group">
                             <label className={`
                                 w-full min-h-[250px] rounded-[1.8rem] border-2 border-dashed 
-                                flex flex-col items-center justify-center p-6 transition-all cursor-pointer relative overflow-hidden
-                                ${preview ? 'border-emerald-500 bg-emerald-50/20' : 'border-slate-200 hover:border-[#000080] hover:bg-slate-50'}
+                                flex flex-col items-center justify-center p-6 transition-all relative overflow-hidden
+                                ${conflictEkskul ? 'border-slate-200 bg-slate-50 opacity-60 cursor-not-allowed' : preview ? 'border-emerald-500 bg-emerald-50/20 cursor-pointer' : 'border-slate-200 hover:border-[#000080] hover:bg-slate-50 cursor-pointer'}
                             `}>
                                 <input
                                     type="file"
+                                    disabled={Boolean(conflictEkskul)}
                                     className="hidden"
                                     accept="image/*,.pdf"
                                     onChange={handleFileChange}
@@ -210,10 +317,10 @@ const SiswaDaftarForm = () => {
 
                         <button
                             type="submit"
-                            disabled={!file || submitting}
+                            disabled={!file || submitting || Boolean(conflictEkskul)}
                             className={`
                                 w-full mt-10 py-4 rounded-2xl font-black uppercase tracking-[0.15em] transition-all flex items-center justify-center gap-3 shadow-xl
-                                ${file && !submitting
+                                ${file && !submitting && !conflictEkskul
                                     ? 'bg-[#000080] text-white hover:bg-blue-900 shadow-blue-900/20 active:scale-95'
                                     : 'bg-slate-100 text-slate-400 cursor-not-allowed'}
                             `}
@@ -222,6 +329,10 @@ const SiswaDaftarForm = () => {
                                 <>
                                     <div className="w-5 h-5 border-2 border-white/20 border-t-white rounded-full animate-spin"></div>
                                     Memproses...
+                                </>
+                            ) : conflictEkskul ? (
+                                <>
+                                    Jadwal Bertabrakan (Pilih Salah Satu)
                                 </>
                             ) : (
                                 <>

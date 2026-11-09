@@ -225,6 +225,37 @@ class PendaftaranController {
             errorResponse('Kamu sudah mendaftar ekstrakurikuler ini di periode ini', 409);
         }
 
+        // Cek bentrok / tabrakan jadwal dengan ekskul yang sudah didaftar siswa
+        $stmtTarget = $db->prepare("SELECT id, nama_ekskul, hari, jam FROM ekstrakurikuler WHERE id = :eid");
+        $stmtTarget->execute([':eid' => $ekskulId]);
+        $targetEkskul = $stmtTarget->fetch(PDO::FETCH_ASSOC);
+
+        if ($targetEkskul && !empty($targetEkskul['hari']) && !empty($targetEkskul['jam'])) {
+            $stmtMy = $db->prepare("
+                SELECT e.id, e.nama_ekskul, e.hari, e.jam, pe.status
+                FROM pendaftaran_ekskul pe
+                JOIN ekstrakurikuler e ON pe.ekskul_id = e.id
+                WHERE pe.siswa_id = :sid 
+                  AND pe.status IN ('approved', 'pending')
+                  AND pe.tahun_ajaran = :tahun 
+                  AND pe.semester = :sem
+            ");
+            $stmtMy->execute([':sid' => $siswaId, ':tahun' => $tahun, ':sem' => $sem]);
+            $myEkskuls = $stmtMy->fetchAll(PDO::FETCH_ASSOC);
+
+            foreach ($myEkskuls as $my) {
+                if (self::checkScheduleConflict($targetEkskul['hari'], $targetEkskul['jam'], $my['hari'], $my['jam'])) {
+                    $namaBentrok = $my['nama_ekskul'];
+                    $jadwalBentrok = "{$my['hari']} jam {$my['jam']}";
+                    $jadwalTarget = "{$targetEkskul['hari']} jam {$targetEkskul['jam']}";
+                    errorResponse(
+                        "Jadwal bentrok! Ekskul '{$targetEkskul['nama_ekskul']}' ($jadwalTarget) bertabrakan dengan ekskul yang sudah kamu ambil, yaitu '{$namaBentrok}' ($jadwalBentrok). Silakan pilih salah satu dari ekskul tersebut.",
+                        409
+                    );
+                }
+            }
+        }
+
         // Handle File Upload
         require_once 'helpers/UploadHelper.php';
         $uploadPath = UploadHelper::upload($_FILES['surat_ijin'], 'public/uploads/registration');
@@ -336,5 +367,59 @@ class PendaftaranController {
         }
         
         successResponse(null, 'Pengunduran diri ditolak, status siswa kembali Aktif');
+    }
+
+    /**
+     * Helper: Mengecek apakah ada bentrok hari dan jam antara dua jadwal ekskul
+     */
+    public static function checkScheduleConflict(?string $hari1, ?string $jam1, ?string $hari2, ?string $jam2): bool
+    {
+        if (empty($hari1) || empty($jam1) || empty($hari2) || empty($jam2)) {
+            return false;
+        }
+
+        // Cek irisan hari (ekskul bisa memiliki beberapa hari dipisah koma)
+        $listHari1 = array_map('trim', explode(',', strtolower($hari1)));
+        $listHari2 = array_map('trim', explode(',', strtolower($hari2)));
+        $sameDay = false;
+        foreach ($listHari1 as $h1) {
+            foreach ($listHari2 as $h2) {
+                if ($h1 === $h2 && !empty($h1)) {
+                    $sameDay = true;
+                    break 2;
+                }
+            }
+        }
+
+        if (!$sameDay) {
+            return false;
+        }
+
+        // Cek irisan waktu jam latihan (contoh: "14:00 - 15:30" atau "14.00-15.30")
+        $range1 = self::parseTimeRange($jam1);
+        $range2 = self::parseTimeRange($jam2);
+
+        if (!$range1 || !$range2) {
+            // Jika format jam tidak bisa diparsing otomatis, anggap bentrok jika hari sama
+            return true;
+        }
+
+        // Formula overlap: start1 < end2 && start2 < end1
+        return ($range1['start'] < $range2['end']) && ($range2['start'] < $range1['end']);
+    }
+
+    private static function parseTimeRange(string $jamStr): ?array
+    {
+        // Ganti titik dengan titik dua, misal 14.00 -> 14:00
+        $clean = str_replace('.', ':', $jamStr);
+        // Tangkap dua waktu, misal 14:00 dan 15:30
+        if (preg_match('/(\d{1,2}:\d{2})\s*[-–s\/d]+\s*(\d{1,2}:\d{2})/', $clean, $matches)) {
+            $start = strtotime("1970-01-01 " . $matches[1] . ":00");
+            $end   = strtotime("1970-01-01 " . $matches[2] . ":00");
+            if ($start !== false && $end !== false) {
+                return ['start' => $start, 'end' => $end];
+            }
+        }
+        return null;
     }
 }

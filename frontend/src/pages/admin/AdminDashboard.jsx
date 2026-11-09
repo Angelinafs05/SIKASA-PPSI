@@ -427,7 +427,7 @@ const AdminDashboard = () => {
                                                         <div className="flex justify-center gap-2">
                                                             {item.surat_ijin && (
                                                                 <a
-                                                                    href={`http://localhost/SIKASA/backend/${item.surat_ijin}`}
+                                                                    href={`http://localhost/SIKASA%20PPSI/backend/${item.surat_ijin}`}
                                                                     target="_blank"
                                                                     rel="noopener noreferrer"
                                                                     className="p-2 bg-blue-50 text-[#000080] hover:bg-[#000080] hover:text-white rounded-xl transition-all shadow-sm"

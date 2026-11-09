@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { ClipboardCheck, Save, Search, Activity, Calendar, User, CheckCircle } from 'lucide-react';
+import { ClipboardCheck, Save, Search, Activity, Calendar, User, CheckCircle, Edit2, BookOpen } from 'lucide-react';
 import api from '../../api/api';
 
 const PelatihAbsensi = () => {
@@ -10,6 +10,8 @@ const PelatihAbsensi = () => {
     const [success, setSuccess] = useState('');
     const [searchTerm, setSearchTerm] = useState('');
     const [tanggal, setTanggal] = useState(new Date().toISOString().split('T')[0]);
+    const [isAlreadySaved, setIsAlreadySaved] = useState(false);
+    const [materi, setMateri] = useState('');
 
     useEffect(() => {
         fetchData(tanggal);
@@ -20,7 +22,12 @@ const PelatihAbsensi = () => {
             setLoading(true);
             const response = await api.get(`/api/pelatih/absensi?tanggal=${selectedDate}`);
             if (response.data.success) {
-                setStudents(response.data.data.siswa.map(s => ({
+                const siswaList = response.data.data.siswa || [];
+                const alreadyRecorded = siswaList.some(s => s.status_absensi !== null && s.status_absensi !== undefined && s.status_absensi !== '');
+                setIsAlreadySaved(alreadyRecorded);
+                setMateri(response.data.data.materi || '');
+
+                setStudents(siswaList.map(s => ({
                     ...s,
                     status_absensi: s.status_absensi || 'Hadir' // Default Hadir 
                 })));
@@ -48,6 +55,7 @@ const PelatihAbsensi = () => {
 
             const payload = {
                 tanggal: tanggal,
+                materi: materi,
                 absensi: students.map(s => ({
                     siswa_id: s.id,
                     status: s.status_absensi
@@ -56,7 +64,8 @@ const PelatihAbsensi = () => {
 
             const response = await api.post('/api/pelatih/absensi', payload);
             if (response.data.success) {
-                setSuccess('Absensi berhasil disimpan!');
+                setIsAlreadySaved(true);
+                setSuccess(isAlreadySaved ? 'Perubahan absensi berhasil diperbarui!' : 'Absensi berhasil disimpan!');
                 window.scrollTo({ top: 0, behavior: 'smooth' });
                 setTimeout(() => setSuccess(''), 5000);
             } else {
@@ -146,6 +155,26 @@ const PelatihAbsensi = () => {
                 </div>
             )}
 
+            {/* MATERI PERTEMUAN INPUT */}
+            <div className="bg-white border border-slate-200 rounded-3xl p-6 shadow-sm space-y-3">
+                <label className="text-xs font-black text-slate-700 uppercase tracking-wider flex items-center gap-2">
+                    <BookOpen size={18} className="text-[#000080]" />
+                    Materi / Topik Latihan Hari Ini:
+                </label>
+                <div className="relative">
+                    <input
+                        type="text"
+                        value={materi}
+                        onChange={(e) => setMateri(e.target.value)}
+                        placeholder="Contoh: Pengenalan Teknik Dribbling dan Shooting..."
+                        className="w-full px-5 py-3.5 bg-slate-50 border border-slate-200 rounded-2xl font-bold text-slate-800 text-sm focus:bg-white focus:outline-none focus:ring-4 focus:ring-blue-50 focus:border-[#000080] transition-all placeholder:text-slate-400 font-sans"
+                    />
+                </div>
+                <p className="text-[11px] text-slate-400 font-medium">
+                    Materi ini otomatis terhubung ke menu <strong>Input Nilai</strong> untuk penilaian performa siswa pada tanggal tersebut.
+                </p>
+            </div>
+
             {/* ATTENDANCE TABLE */}
             {loading ? (
                 <div className="flex justify-center items-center h-64">
@@ -185,9 +214,20 @@ const PelatihAbsensi = () => {
                                             <span className={`inline-flex items-center justify-center px-3 py-1 rounded-full text-xs font-bold border ${getStatusColor(siswa.status_absensi)}`}>
                                                 {siswa.status_absensi}
                                             </span>
+                                            {siswa.status_absensi === 'Izin' && (
+                                                <span className={`block mt-1 text-[10px] font-extrabold px-2 py-0.5 rounded-full border ${
+                                                    siswa.status_izin === 'Disetujui'
+                                                        ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
+                                                        : siswa.status_izin === 'Ditolak'
+                                                            ? 'bg-rose-50 text-rose-700 border-rose-200'
+                                                            : 'bg-amber-50 text-amber-700 border-amber-200'
+                                                }`}>
+                                                    {siswa.status_izin === 'Disetujui' ? '✓ Disetujui Admin' : siswa.status_izin === 'Ditolak' ? '✗ Ditolak Admin' : '⏳ Menunggu Admin'}
+                                                </span>
+                                            )}
                                             {siswa.surat_ijin && siswa.status_absensi === 'Izin' && (
                                                 <a
-                                                    href={`http://localhost/SIKASA/backend/${siswa.surat_ijin}`}
+                                                    href={`http://localhost/SIKASA%20PPSI/backend/${siswa.surat_ijin}`}
                                                     target="_blank"
                                                     rel="noopener noreferrer"
                                                     className="block mt-2 text-[10px] font-bold text-[#000080] hover:underline"
@@ -236,12 +276,21 @@ const PelatihAbsensi = () => {
                     <button
                         onClick={handleSave}
                         disabled={saving || loading}
-                        className="flex items-center gap-3 px-8 py-4 bg-[#000080] hover:bg-blue-900 text-white rounded-[2rem] font-black text-sm shadow-2xl shadow-blue-900/40 hover:-translate-y-1 active:scale-95 transition-all group disabled:opacity-70"
+                        className={`flex items-center gap-3 px-8 py-4 text-white rounded-[2rem] font-black text-sm shadow-2xl hover:-translate-y-1 active:scale-95 transition-all group disabled:opacity-70 ${
+                            isAlreadySaved
+                                ? "bg-amber-600 hover:bg-amber-700 shadow-amber-900/30"
+                                : "bg-[#000080] hover:bg-blue-900 shadow-blue-900/40"
+                        }`}
                     >
                         {saving ? (
                             <>
                                 <div className="w-5 h-5 border-2 border-white/20 border-t-white rounded-full animate-spin"></div>
-                                Menyimpan...
+                                {isAlreadySaved ? "Memperbarui..." : "Menyimpan..."}
+                            </>
+                        ) : isAlreadySaved ? (
+                            <>
+                                <Edit2 size={20} className="group-hover:scale-110 transition-transform" />
+                                Edit Absensi
                             </>
                         ) : (
                             <>

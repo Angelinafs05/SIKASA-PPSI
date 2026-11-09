@@ -104,6 +104,28 @@ const PelatihList = () => {
 
     const handleInputChange = (e) => {
         const { name, value } = e.target;
+
+        if (name === 'ekskul_id' && value) {
+            const chosenEkskul = ekskulOptions.find(e => String(e.id) === String(value));
+            // Cek apakah ekskul ini sudah dibina pelatih lain
+            const alreadyAssignedPelatih = pelatih.find(p => String(p.ekskul_id) === String(value) && (!isEditing || String(p.id) !== String(editId)));
+            if (alreadyAssignedPelatih) {
+                setError(`Ekstrakurikuler ${chosenEkskul ? chosenEkskul.nama_ekskul : ''} sudah dibina oleh pelatih ${alreadyAssignedPelatih.nama_pelatih}. Satu ekskul hanya memiliki 1 pelatih utama!`);
+                window.scrollTo({ top: 0, behavior: 'smooth' });
+                return;
+            }
+        }
+
+        if (name === 'guru_id' && value) {
+            const chosenGuru = guruOptions.find(g => String(g.id) === String(value));
+            if (chosenGuru && chosenGuru.assigned_pelatih_id && (!isEditing || String(chosenGuru.assigned_pelatih_id) !== String(editId))) {
+                setError(`Guru ${chosenGuru.nama_guru} sudah mendampingi pelatih ${chosenGuru.assigned_pelatih_nama || ''} (${chosenGuru.assigned_ekskul_nama || 'Ekskul lain'}). Satu guru hanya bisa mendampingi 1 kegiatan!`);
+                window.scrollTo({ top: 0, behavior: 'smooth' });
+                return;
+            }
+        }
+
+        setError('');
         setFormData(prev => ({ ...prev, [name]: value }));
     };
 
@@ -324,9 +346,19 @@ const PelatihList = () => {
                                             className="w-full px-4 py-3 rounded-xl border border-slate-200 focus:border-[#000080] focus:ring-4 focus:ring-blue-50 outline-none transition-all font-medium bg-white"
                                         >
                                             <option value="">Pilih Ekstrakurikuler...</option>
-                                            {ekskulOptions.map(option => (
-                                                <option key={option.id} value={option.id}>{option.nama_ekskul}</option>
-                                            ))}
+                                            {ekskulOptions.map(option => {
+                                                const coach = pelatih.find(p => String(p.ekskul_id) === String(option.id) && (!isEditing || String(p.id) !== String(editId)));
+                                                return (
+                                                    <option 
+                                                        key={option.id} 
+                                                        value={option.id}
+                                                        disabled={Boolean(coach)}
+                                                        className={coach ? "text-slate-400 bg-slate-100 font-normal" : "text-slate-800 font-medium"}
+                                                    >
+                                                        {option.nama_ekskul} {coach ? `(Sudah dibina ${coach.nama_pelatih})` : ''}
+                                                    </option>
+                                                );
+                                            })}
                                         </select>
                                     </div>
 
@@ -344,9 +376,19 @@ const PelatihList = () => {
                                             className="w-full px-4 py-3 rounded-xl border border-slate-200 focus:border-[#000080] focus:ring-4 focus:ring-blue-50 outline-none transition-all font-medium bg-white"
                                         >
                                             <option value="">Tidak ada pendamping (Internal)</option>
-                                            {guruOptions.map(g => (
-                                                <option key={g.id} value={g.id}>{g.nama_guru}</option>
-                                            ))}
+                                            {guruOptions.map(g => {
+                                                const isAssigned = g.assigned_pelatih_id && (!isEditing || String(g.assigned_pelatih_id) !== String(editId));
+                                                return (
+                                                    <option 
+                                                        key={g.id} 
+                                                        value={g.id}
+                                                        disabled={Boolean(isAssigned)}
+                                                        className={isAssigned ? "text-slate-400 bg-slate-100 font-normal" : "text-slate-800 font-medium"}
+                                                    >
+                                                        {g.nama_guru} {isAssigned ? `(Sudah mendampingi ${g.assigned_ekskul_nama || g.assigned_pelatih_nama})` : ""}
+                                                    </option>
+                                                );
+                                            })}
                                         </select>
                                     </div>
 

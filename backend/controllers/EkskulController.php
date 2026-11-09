@@ -65,7 +65,7 @@ class EkskulController
         $db = getDB();
 
         $stmt = $db->prepare("
-            SELECT e.*, p.nama_pelatih AS pelatih_nama
+            SELECT e.*, p.id AS pelatih_id, p.nama_pelatih AS pelatih_nama
             FROM ekstrakurikuler e
             LEFT JOIN pelatih p ON p.ekskul_id = e.id
             WHERE e.id = :id
@@ -198,11 +198,26 @@ class EkskulController
             errorResponse('Ekskul tidak ditemukan', 404);
         }
 
-        // Update pelatih_id in pelatih table
-        // First, clear any existing pelatih_id for this ekskul
+        // Update pelatih_id in pelatih table dan bersihkan ekskul lama pelatih tersebut
+        // 1. Bersihkan ekskul lain yang sebelumnya dibina oleh pelatih ini (karena 1 pembina hanya 1 ekskul)
+        if ($pelatihId) {
+            $stmtPrev = $db->prepare("SELECT ekskul_id, nama_pelatih FROM pelatih WHERE id = :pid");
+            $stmtPrev->execute([':pid' => $pelatihId]);
+            $prevP = $stmtPrev->fetch();
+            if ($prevP && !empty($prevP['ekskul_id']) && $prevP['ekskul_id'] != $id) {
+                $db->prepare("UPDATE ekstrakurikuler SET pelatih = '' WHERE id = :old_eid")
+                    ->execute([':old_eid' => $prevP['ekskul_id']]);
+            }
+            // Bersihkan ekskul lain yang tercatat nama pelatih ini
+            $db->prepare("UPDATE ekstrakurikuler SET pelatih = '' WHERE pelatih = :pname AND id != :curr_id")
+                ->execute([':pname' => $pelatihNama, ':curr_id' => $id]);
+        }
+
+        // 2. Clear any existing pelatih_id that was previously assigned to this ekskul
         $db->prepare("UPDATE pelatih SET ekskul_id = NULL WHERE ekskul_id = :eid")
             ->execute([':eid' => $id]);
-        // Then, set the new pelatih_id if provided
+
+        // 3. Set the new pelatih_id if provided
         if ($pelatihId) {
             $db->prepare("UPDATE pelatih SET ekskul_id = :eid WHERE id = :pid")
                 ->execute([':eid' => $id, ':pid' => $pelatihId]);

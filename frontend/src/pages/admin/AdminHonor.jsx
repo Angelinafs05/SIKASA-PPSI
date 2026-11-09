@@ -637,7 +637,7 @@ const AdminHonor = () => {
                                                         )}
                                                         {item.bukti_transfer && (
                                                             <a
-                                                                href={`http://localhost/SIKASA/backend/${item.bukti_transfer}`}
+                                                                href={`http://localhost/SIKASA%20PPSI/backend/${item.bukti_transfer}`}
                                                                 target="_blank"
                                                                 rel="noopener noreferrer"
                                                                 className="inline-flex w-8 h-8 items-center justify-center bg-indigo-50 text-indigo-600 hover:bg-indigo-100 rounded-lg transition-all"

@@ -44,15 +44,16 @@ require_once __DIR__ . '/controllers/HonorController.php';
 require_once __DIR__ . '/controllers/LombaController.php';
 require_once __DIR__ . '/controllers/ParentController.php';
 require_once __DIR__ . '/controllers/AdminParentController.php';
+require_once __DIR__ . '/controllers/TahunAjaranController.php';
 
 // ==================== ROUTING ====================
 
 $method = $_SERVER['REQUEST_METHOD'];
 $uri    = $_SERVER['REQUEST_URI'];
 
-// Remove base path (adjust if needed)
-$basePath = '/SIKASA/backend';
-$uri = str_replace($basePath, '', $uri);
+// Remove base path dynamically (support /SIKASA PPSI/backend or /SIKASA/backend)
+$uri = preg_replace('#^/SIKASA(?:%20|\s+)PPSI/backend#i', '', $uri);
+$uri = preg_replace('#^/SIKASA/backend#i', '', $uri);
 
 // Remove query string
 $uri = strtok($uri, '?');
@@ -64,6 +65,20 @@ $uri = rtrim($uri, '/');
 if ($uri === '') $uri = '/';
 
 // ==================== ROUTE DEFINITIONS ====================
+
+// SERVE STATIC UPLOADED FILES (Jika direct web server rewrite mengarah ke index.php)
+if (preg_match('#^/public/uploads/(.+)$#', $uri, $m) && $method === 'GET') {
+    $filePath = __DIR__ . '/public/uploads/' . $m[1];
+    if (file_exists($filePath) && is_file($filePath)) {
+        $mime = mime_content_type($filePath);
+        header('Content-Type: ' . ($mime ?: 'application/octet-stream'));
+        header('Content-Length: ' . filesize($filePath));
+        readfile($filePath);
+        exit;
+    } else {
+        errorResponse('File tidak ditemukan', 404);
+    }
+}
 
 // HEALTH CHECK
 if ($uri === '/' && $method === 'GET') {
@@ -193,17 +208,29 @@ elseif ($uri === '/api/admin/monitoring' && $method === 'GET') {
     DashboardController::monitoringNilai();
 }
 
-// ADMIN - HONOR PELATIH
-elseif ($uri === '/api/admin/honor' && $method === 'GET') {
-    HonorController::index();
-} elseif ($uri === '/api/admin/honor/summary' && $method === 'GET') {
-    HonorController::summary();
-} elseif ($uri === '/api/admin/honor' && $method === 'POST') {
-    HonorController::store();
-} elseif (preg_match('#^/api/admin/honor/(\d+)/status$#', $uri, $m) && $method === 'PUT') {
-    HonorController::updateStatus((int)$m[1]);
-} elseif (preg_match('#^/api/admin/honor/(\d+)$#', $uri, $m) && $method === 'DELETE') {
-    HonorController::destroy((int)$m[1]);
+// ADMIN - IZIN
+elseif ($uri === '/api/admin/izin' && $method === 'GET') {
+    AbsensiController::adminListIzin();
+} elseif (preg_match('#^/api/admin/izin/(\d+)/status$#', $uri, $m) && $method === 'POST') {
+    AbsensiController::adminUpdateIzin((int)$m[1]);
+}
+
+// ADMIN - REKAP ABSENSI & NILAI
+elseif ($uri === '/api/admin/rekap-absensi' && $method === 'GET') {
+    AbsensiController::rekapAbsensi();
+} elseif ($uri === '/api/admin/rekap-nilai' && $method === 'GET') {
+    NilaiController::rekapNilai();
+}
+
+// ADMIN - TAHUN AJARAN
+elseif ($uri === '/api/admin/tahun-ajaran' && $method === 'GET') {
+    TahunAjaranController::index();
+} elseif ($uri === '/api/admin/tahun-ajaran' && $method === 'POST') {
+    TahunAjaranController::store();
+} elseif ($uri === '/api/admin/tahun-ajaran/activate' && $method === 'PUT') {
+    TahunAjaranController::activate();
+} elseif (preg_match('#^/api/admin/tahun-ajaran/(\d+)$#', $uri, $m) && $method === 'DELETE') {
+    TahunAjaranController::destroy((int)$m[1]);
 }
 
 // ADMIN - SETTINGS
@@ -216,6 +243,36 @@ elseif ($uri === '/api/admin/settings' && $method === 'GET') {
 // PELATIH
 elseif ($uri === '/api/pelatih/dashboard' && $method === 'GET') {
     DashboardController::pelatihDashboard();
+} elseif ($uri === '/api/pelatih/siswa' && $method === 'GET') {
+    PendaftaranController::pelatihSiswa();
+} elseif ($uri === '/api/pelatih/pending' && $method === 'GET') {
+    PendaftaranController::pelatihPending();
+} elseif (preg_match('#^/api/pelatih/approval/(\d+)$#', $uri, $m) && $method === 'POST') {
+    PendaftaranController::pelatihApproval((int)$m[1]);
+} elseif ($uri === '/api/pelatih/absensi' && $method === 'GET') {
+    AbsensiController::index();
+} elseif ($uri === '/api/pelatih/absensi' && $method === 'POST') {
+    AbsensiController::store();
+} elseif ($uri === '/api/pelatih/nilai' && $method === 'GET') {
+    NilaiController::index();
+} elseif ($uri === '/api/pelatih/nilai' && $method === 'POST') {
+    NilaiController::store();
+} elseif ($uri === '/api/pelatih/nilai/pertemuan' && $method === 'GET') {
+    NilaiController::getPertemuanNilai();
+} elseif ($uri === '/api/pelatih/nilai/pertemuan' && $method === 'POST') {
+    NilaiController::savePertemuanNilai();
+} elseif ($uri === '/api/pelatih/monitoring-nilai' && $method === 'GET') {
+    NilaiController::monitoringPelatih();
+} elseif ($uri === '/api/pelatih/bobot-nilai' && $method === 'GET') {
+    BobotNilaiController::indexPelatih();
+} elseif ($uri === '/api/pelatih/bobot-nilai' && $method === 'POST') {
+    BobotNilaiController::store();
+} elseif ($uri === '/api/pelatih/izin' && $method === 'GET') {
+    AbsensiController::izin();
+} elseif ($uri === '/api/pelatih/profil' && $method === 'GET') {
+    PelatihController::getProfil();
+} elseif ($uri === '/api/pelatih/profil/password' && $method === 'PUT') {
+    PelatihController::updatePassword();
 }
 
 // GURU PENDAMPING
@@ -231,47 +288,16 @@ elseif ($uri === '/api/pendamping/dashboard' && $method === 'GET') {
     NilaiController::pendampingIndex();
 } elseif ($uri === '/api/pendamping/nilai' && $method === 'POST') {
     NilaiController::pendampingStore();
-} elseif ($uri === '/api/pelatih/siswa' && $method === 'GET') {
-    PendaftaranController::pelatihSiswa();
-} elseif ($uri === '/api/pelatih/pending' && $method === 'GET') {
-    PendaftaranController::pelatihPending();
-} elseif (preg_match('#^/api/pelatih/approval/(\d+)$#', $uri, $m) && $method === 'POST') {
-    PendaftaranController::pelatihApproval((int)$m[1]);
-} elseif ($uri === '/api/pelatih/absensi' && $method === 'GET') {
-    AbsensiController::index();
-} elseif ($uri === '/api/pelatih/absensi' && $method === 'POST') {
-    AbsensiController::store();
-} elseif ($uri === '/api/pelatih/nilai' && $method === 'GET') {
-    NilaiController::index();
-} elseif ($uri === '/api/pelatih/nilai' && $method === 'POST') {
-    NilaiController::store();
-} elseif ($uri === '/api/pelatih/bobot-nilai' && $method === 'GET') {
-    BobotNilaiController::indexPelatih();
-} elseif ($uri === '/api/pelatih/bobot-nilai' && $method === 'POST') {
-    BobotNilaiController::store();
-} elseif ($uri === '/api/pelatih/izin' && $method === 'GET') {
-    AbsensiController::izin();
-} elseif ($uri === '/api/pelatih/profil' && $method === 'GET') {
-    PelatihController::getProfil();
-} elseif ($uri === '/api/pelatih/profil/password' && $method === 'PUT') {
-    PelatihController::updatePassword();
-} elseif ($uri === '/api/pelatih/honor' && $method === 'GET') {
-    HonorController::pelatihHonor();
-}
-
-// LOMBA & DELEGASI (ADMIN)
-elseif ($uri === '/api/admin/lomba' && $method === 'GET') {
-    LombaController::getAllLomba();
-} elseif ($uri === '/api/admin/lomba' && $method === 'POST') {
-    LombaController::createLomba();
-} elseif ($uri === '/api/admin/lomba/peserta' && $method === 'POST') {
-    LombaController::addPeserta();
-} elseif (preg_match('#^/api/admin/lomba/peserta/(\d+)$#', $uri, $m) && $method === 'DELETE') {
-    LombaController::removePeserta((int)$m[1]);
-} elseif (preg_match('#^/api/admin/lomba/(\d+)/hasil$#', $uri, $m) && $method === 'POST') {
-    LombaController::updateHasil((int)$m[1]);
-} elseif (preg_match('#^/api/admin/lomba/(\d+)$#', $uri, $m) && $method === 'DELETE') {
-    LombaController::deleteLomba((int)$m[1]);
+} elseif ($uri === '/api/pendamping/nilai/pertemuan' && $method === 'GET') {
+    NilaiController::getPertemuanNilai();
+} elseif ($uri === '/api/pendamping/nilai/pertemuan' && $method === 'POST') {
+    NilaiController::savePertemuanNilai();
+} elseif ($uri === '/api/pelatih/monitoring-nilai' && $method === 'GET') {
+    NilaiController::monitoringPelatih();
+} elseif ($uri === '/api/pendamping/profil' && $method === 'GET') {
+    GuruController::getProfil();
+} elseif ($uri === '/api/pendamping/profil/password' && $method === 'PUT') {
+    GuruController::updatePassword();
 }
 
 // SISWA
@@ -299,31 +325,11 @@ elseif ($uri === '/api/siswa/dashboard' && $method === 'GET') {
     AbsensiController::cancelIzin();
 } elseif (preg_match('#^/api/siswa/ekskul/(\d+)$#', $uri, $m) && $method === 'GET') {
     EkskulController::show((int)$m[1]);
-} elseif ($uri === '/api/siswa/lomba' && $method === 'GET') {
-    LombaController::getLombaSiswa();
-} elseif ($uri === '/api/siswa/lomba/konfirmasi' && $method === 'POST') {
-    LombaController::konfirmasiSiswa();
 }
 
-// ORANG TUA (DASHBOARD)
-elseif ($uri === '/api/parent/children' && $method === 'GET') {
-    ParentController::getChildren();
-} elseif (preg_match('#^/api/parent/child/(\d+)/absensi$#', $uri, $m) && $method === 'GET') {
-    ParentController::getChildAbsensi((int)$m[1]);
-} elseif (preg_match('#^/api/parent/child/(\d+)/nilai$#', $uri, $m) && $method === 'GET') {
-    ParentController::getChildNilai((int)$m[1]);
-} elseif (preg_match('#^/api/parent/child/(\d+)/lomba$#', $uri, $m) && $method === 'GET') {
-    ParentController::getChildLomba((int)$m[1]);
-} elseif (preg_match('#^/api/parent/child/(\d+)/ekskul$#', $uri, $m) && $method === 'GET') {
-    ParentController::getChildEkskul((int)$m[1]);
-} elseif ($uri === '/api/parent/child/withdrawal' && $method === 'POST') {
-    PendaftaranController::requestWithdrawal();
-} elseif ($uri === '/api/parent/lomba/approve' && $method === 'POST') {
-    ParentController::approveLomba();
-} elseif ($uri === '/api/parent/profil' && $method === 'GET') {
-    ParentController::getProfile();
-} elseif ($uri === '/api/parent/profil' && $method === 'PUT') {
-    ParentController::updateProfile();
+// KEPALA SEKOLAH (PROFILE)
+elseif ($uri === '/api/kepala_sekolah/profil' && $method === 'GET') {
+    AuthController::me();
 }
 
 // 404

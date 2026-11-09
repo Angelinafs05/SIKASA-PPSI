@@ -166,10 +166,31 @@ const SiswaKehadiran = () => {
                                                             {log.tanggal ? new Date(log.tanggal).toLocaleDateString('id-ID', { day: '2-digit', month: 'long', year: 'numeric' }) : '-'}
                                                         </td>
                                                         <td className="px-6 py-4 space-y-2">
-                                                            <div className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-wider ${style.bg} ${style.color}`}>
-                                                                {style.icon}
-                                                                {log.status}
+                                                            <div className="flex flex-wrap items-center gap-2">
+                                                                <div className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-wider ${style.bg} ${style.color}`}>
+                                                                    {style.icon}
+                                                                    {log.status}
+                                                                </div>
+                                                                {log.status === 'Izin' && (
+                                                                    <span className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-bold border ${
+                                                                        log.status_izin === 'Disetujui'
+                                                                            ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
+                                                                            : log.status_izin === 'Ditolak'
+                                                                                ? 'bg-rose-50 text-rose-700 border-rose-200'
+                                                                                : 'bg-amber-50 text-amber-700 border-amber-200'
+                                                                    }`}>
+                                                                        {log.status_izin === 'Disetujui' && <CheckCircle2 size={12} />}
+                                                                        {log.status_izin === 'Ditolak' && <AlertCircle size={12} />}
+                                                                        {(!log.status_izin || log.status_izin === 'Menunggu') && <Clock size={12} />}
+                                                                        {log.status_izin || 'Menunggu Persetujuan Admin'}
+                                                                    </span>
+                                                                )}
                                                             </div>
+                                                            {log.status === 'Izin' && log.catatan_izin && (
+                                                                <p className="text-[11px] text-slate-500 italic mt-1">
+                                                                    Catatan Admin: {log.catatan_izin}
+                                                                </p>
+                                                            )}
                                                             {log.status === 'Izin' && !log.is_final && log.ekskul_id && (
                                                                 <button
                                                                     type="button"

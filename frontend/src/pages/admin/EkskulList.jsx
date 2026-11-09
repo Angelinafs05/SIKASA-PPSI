@@ -5,6 +5,7 @@ import api from '../../api/api';
 const EkskulList = () => {
     const [ekskul, setEkskul] = useState([]);
     const [kelasOptions, setKelasOptions] = useState([]);
+    const [pelatihOptions, setPelatihOptions] = useState([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState('');
     const [success, setSuccess] = useState('');
@@ -29,7 +30,19 @@ const EkskulList = () => {
     useEffect(() => {
         fetchEkskul();
         fetchKelas();
+        fetchPelatih();
     }, []);
+
+    const fetchPelatih = async () => {
+        try {
+            const response = await api.get('/api/admin/pelatih');
+            if (response.data.success) {
+                setPelatihOptions(response.data.data);
+            }
+        } catch (err) {
+            console.error('Gagal mengambil data pelatih', err);
+        }
+    };
 
     const fetchKelas = async () => {
         try {
@@ -67,7 +80,15 @@ const EkskulList = () => {
                 ? JSON.parse(ekskulItem.target_kelas)
                 : (Array.isArray(ekskulItem.target_kelas) ? ekskulItem.target_kelas : []),
             is_seleksi: parseInt(ekskulItem.is_seleksi) || 0,
-            pelatih_id: ekskulItem.pelatih_id || null
+            pelatih_id: (() => {
+                if (ekskulItem.pelatih_id) return ekskulItem.pelatih_id;
+                const found = pelatihOptions.find(p =>
+                    (p.ekskul_id && p.ekskul_id == ekskulItem.id) ||
+                    (p.nama_ekskul && p.nama_ekskul.toLowerCase() === (ekskulItem.nama_ekskul || '').toLowerCase()) ||
+                    (p.nama_pelatih && (p.nama_pelatih === ekskulItem.pelatih || p.nama_pelatih === ekskulItem.pelatih_nama))
+                );
+                return found ? found.id : '';
+            })()
         });
         setEditId(ekskulItem.id);
         setIsEditing(true);
@@ -91,6 +112,19 @@ const EkskulList = () => {
 
     const handleInputChange = (e) => {
         const { name, value, type, checked } = e.target;
+
+        if (name === 'pelatih_id' && value) {
+            const chosen = pelatihOptions.find(p => String(p.id) === String(value));
+            // Cek apakah pembina/pelatih ini sudah melatih ekskul lain
+            if (chosen && chosen.ekskul_id && (!editId || String(chosen.ekskul_id) !== String(editId))) {
+                const namaEkskulLain = chosen.ekskul_nama || 'ekstrakurikuler lain';
+                setError(`Pembina/Pelatih ${chosen.nama_pelatih} saat ini sudah menjadi pembina dari ekskul ${namaEkskulLain}. Pembina hanya bisa membina 1 ekskul saja.`);
+                window.scrollTo({ top: 0, behavior: 'smooth' });
+                return;
+            }
+        }
+
+        setError('');
         setFormData(prev => ({
             ...prev,
             [name]: type === 'checkbox' ? (checked ? 1 : 0) : value
@@ -324,7 +358,7 @@ const EkskulList = () => {
                                             />
                                         </div>
 
-                                        <div className="grid grid-cols-1 gap-4">
+                                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                             <div className="space-y-2">
                                                 <label className="text-sm font-bold text-slate-700">Ruangan / Tempat</label>
                                                 <div className="relative">
@@ -338,6 +372,43 @@ const EkskulList = () => {
                                                         placeholder="Lap. Basket, Aula..."
                                                     />
                                                 </div>
+                                            </div>
+                                            <div className="space-y-2">
+                                                <label className="text-sm font-bold text-slate-700 flex items-center justify-between">
+                                                    <span>Pelatih Ekstrakurikuler</span>
+                                                    {formData.pelatih_id && (
+                                                        <span className="text-[10px] text-emerald-600 font-bold bg-emerald-50 px-2 py-0.5 rounded-full border border-emerald-100">
+                                                            Terhubung
+                                                        </span>
+                                                    )}
+                                                </label>
+                                                <div className="relative">
+                                                    <User className="absolute left-3 top-3.5 text-slate-400" size={18} />
+                                                    <select
+                                                        name="pelatih_id"
+                                                        value={formData.pelatih_id || ''}
+                                                        onChange={handleInputChange}
+                                                        className="w-full pl-10 pr-4 py-3 rounded-xl border border-slate-200 focus:border-[#000080] focus:ring-4 focus:ring-blue-50 outline-none transition-all font-medium bg-white"
+                                                    >
+                                                        <option value="">-- Pilih Pelatih (Opsional) --</option>
+                                                        {pelatihOptions.map(p => {
+                                                            const isAssignedElsewhere = p.ekskul_id && (!editId || String(p.ekskul_id) !== String(editId));
+                                                            return (
+                                                                <option 
+                                                                    key={p.id} 
+                                                                    value={p.id}
+                                                                    disabled={Boolean(isAssignedElsewhere)}
+                                                                    className={isAssignedElsewhere ? "text-slate-400 bg-slate-100 font-normal" : "text-slate-800 font-medium"}
+                                                                >
+                                                                    {p.nama_pelatih} {isAssignedElsewhere ? `(Sudah membina ${p.ekskul_nama || 'Ekskul lain'})` : ''}
+                                                                </option>
+                                                            );
+                                                        })}
+                                                    </select>
+                                                </div>
+                                                <p className="text-[11px] text-slate-400">
+                                                    Pilih pelatih terdaftar. Relasi ekskul dan pelatih akan otomatis tersinkronisasi.
+                                                </p>
                                             </div>
                                         </div>
                                     </div>

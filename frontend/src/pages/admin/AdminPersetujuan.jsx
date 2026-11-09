@@ -147,6 +147,25 @@ const AdminPersetujuan = () => {
                                     </button>
                                 )}
 
+                                {filterStatus === 'pending' && (
+                                    <>
+                                        <button
+                                            onClick={() => handleAction(reg.id, 'reject')}
+                                            className="flex items-center gap-1.5 px-4 py-2.5 bg-rose-50 text-rose-600 hover:bg-rose-600 hover:text-white rounded-2xl font-black text-[10px] uppercase tracking-wider transition-all border border-rose-100 shadow-sm"
+                                            title="Tolak Pendaftaran"
+                                        >
+                                            <XCircle size={16} /> Tidak Approve
+                                        </button>
+                                        <button
+                                            onClick={() => handleAction(reg.id, 'approve')}
+                                            className="flex items-center gap-1.5 px-5 py-2.5 bg-emerald-600 text-white hover:bg-emerald-700 rounded-2xl font-black text-[10px] uppercase tracking-wider transition-all shadow-md shadow-emerald-600/20"
+                                            title="Setujui Pendaftaran"
+                                        >
+                                            <CheckCircle2 size={16} /> Approve
+                                        </button>
+                                    </>
+                                )}
+
                                 {filterStatus === 'pending_withdrawal' && (
                                     <>
                                         <div className="hidden md:block w-[1px] h-10 bg-slate-100 mx-2"></div>
@@ -195,7 +214,7 @@ const AdminPersetujuan = () => {
 
                         <div className="flex-1 overflow-auto bg-slate-50 rounded-[2rem] flex items-center justify-center min-h-0">
                             <img
-                                src={`http://localhost/SIKASA/backend/${selectedImg}`}
+                                src={`http://localhost/SIKASA%20PPSI/backend/${selectedImg}`}
                                 alt="Surat Izin"
                                 className="max-w-full h-auto object-contain"
                             />
@@ -204,7 +223,7 @@ const AdminPersetujuan = () => {
                         <div className="mt-4 flex items-center justify-between px-4">
                             <p className="text-[10px] font-black uppercase tracking-widest text-[#000080]">Lampiran Surat Persetujuan Orang Tua</p>
                             <a
-                                href={`http://localhost/SIKASA/backend/${selectedImg}`}
+                                href={`http://localhost/SIKASA%20PPSI/backend/${selectedImg}`}
                                 target="_blank"
                                 rel="noreferrer"
                                 className="text-[#000080] hover:underline font-black text-xs flex items-center gap-2"
