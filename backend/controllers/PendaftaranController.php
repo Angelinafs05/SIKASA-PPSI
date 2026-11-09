@@ -211,11 +211,11 @@ class PendaftaranController {
             errorResponse("Siswa kelas IX tidak diperbolehkan mengikuti ekstrakurikuler pada Semester 2.", 403);
         }
 
-        // Cek max 4 ekskul approved dalam periode ini
-        $stmt = $db->prepare("SELECT COUNT(*) FROM pendaftaran_ekskul WHERE siswa_id = :sid AND status = 'approved' AND tahun_ajaran = :tahun AND semester = :sem");
+        // Cek maksimal 2 ekskul approved atau pending dalam periode ini (sesuai aturan sekolah)
+        $stmt = $db->prepare("SELECT COUNT(*) FROM pendaftaran_ekskul WHERE siswa_id = :sid AND status IN ('approved', 'pending') AND tahun_ajaran = :tahun AND semester = :sem");
         $stmt->execute([':sid' => $siswaId, ':tahun' => $tahun, ':sem' => $sem]);
-        if ($stmt->fetchColumn() >= 4) {
-            errorResponse("Maksimal 4 ekstrakurikuler yang disetujui pada periode $tahun $sem", 400);
+        if ($stmt->fetchColumn() >= 2) {
+            errorResponse("Pendaftaran ditolak: Setiap siswa hanya diperbolehkan mengikuti maksimal 2 (dua) ekstrakurikuler pada periode $tahun $sem.", 400);
         }
         
         // Cek duplikat dalam periode ini
@@ -280,6 +280,34 @@ class PendaftaranController {
             error_log("Registration SQL Error: " . $e->getMessage());
             errorResponse("Gagal menyimpan pendaftaran: " . $e->getMessage(), 500);
         }
+    }
+
+    /**
+     * DELETE /api/siswa/pendaftaran/{id}/batal
+     * Siswa membatalkan pendaftaran yang masih berstatus 'pending'
+     */
+    public static function siswaBatalDaftar(int $pendaftaranId): void {
+        $user = requireRole('siswa');
+        $db = getDB();
+        $siswaId = $user->ref_id;
+
+        // Pastikan pendaftaran milik siswa dan statusnya masih 'pending'
+        $stmt = $db->prepare("SELECT id, status, ekskul_id FROM pendaftaran_ekskul WHERE id = :id AND siswa_id = :sid");
+        $stmt->execute([':id' => $pendaftaranId, ':sid' => $siswaId]);
+        $row = $stmt->fetch(PDO::FETCH_ASSOC);
+
+        if (!$row) {
+            errorResponse('Data pendaftaran tidak ditemukan atau bukan milik Anda', 404);
+        }
+
+        if ($row['status'] !== 'pending') {
+            errorResponse('Pendaftaran tidak dapat dibatalkan karena sudah diproses (' . $row['status'] . ').', 400);
+        }
+
+        $del = $db->prepare("DELETE FROM pendaftaran_ekskul WHERE id = :id");
+        $del->execute([':id' => $pendaftaranId]);
+
+        successResponse(null, 'Pendaftaran berhasil dibatalkan. Anda sekarang dapat memilih ekstrakurikuler lain.');
     }
     /**
      * POST /api/parent/child/withdrawal

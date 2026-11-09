@@ -16,6 +16,7 @@ import KelasList from './pages/admin/KelasList';
 import AdminPersetujuan from './pages/admin/AdminPersetujuan';
 import AdminAbsensi from './pages/admin/AdminAbsensi';
 import AdminRekapAbsensi from './pages/admin/AdminRekapAbsensi';
+import AdminLaporanAbsensi from './pages/admin/AdminLaporanAbsensi';
 import AdminIzin from './pages/admin/AdminIzin';
 import AdminNilai from './pages/admin/AdminNilai';
 import AdminRekapNilai from './pages/admin/AdminRekapNilai';
@@ -83,6 +84,7 @@ const App = () => {
         {/* Absensi */}
         <Route path="absensi" element={<AdminAbsensi />} />
         <Route path="rekap-absensi" element={<AdminRekapAbsensi />} />
+        <Route path="laporan-absensi" element={<AdminLaporanAbsensi />} />
         {/* Izin */}
         <Route path="izin" element={<AdminIzin />} />
         {/* Penilaian */}
@@ -123,7 +125,7 @@ const App = () => {
         }
       >
         <Route index element={<GuruDashboard />} />
-        <Route path="ekskul" element={<GuruDashboard />} />
+        <Route path="ekskul" element={<Navigate to="/pendamping" replace />} />
         <Route path="absensi" element={<GuruAbsensi />} />
         <Route path="rekap-absensi" element={<AdminRekapAbsensi />} />
         <Route path="izin" element={<AdminIzin />} />
@@ -165,7 +167,7 @@ const App = () => {
         <Route path="monitoring-siswa" element={<SiswaList />} />
         <Route path="absensi" element={<AdminAbsensi />} />
         <Route path="nilai" element={<AdminNilai />} />
-        <Route path="laporan-absensi" element={<AdminRekapAbsensi />} />
+        <Route path="laporan-absensi" element={<AdminLaporanAbsensi />} />
         <Route path="laporan-nilai" element={<AdminLaporanNilai />} />
         <Route path="profil" element={<KepalaSekolahProfil />} />
       </Route>

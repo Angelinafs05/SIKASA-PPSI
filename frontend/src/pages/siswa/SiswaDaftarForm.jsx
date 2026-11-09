@@ -1,9 +1,15 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { Trophy, Calendar, Clock, MapPin, User, Upload, CheckCircle2, AlertCircle, ArrowLeft, Camera, AlertTriangle, HelpCircle } from 'lucide-react';
+import { 
+    Trophy, Calendar, Clock, MapPin, User, Upload, CheckCircle2, 
+    AlertCircle, ArrowLeft, Camera, AlertTriangle, HelpCircle, 
+    FileText, Download, Eye, PenTool, Sparkles, ShieldCheck
+} from 'lucide-react';
 import api from '../../api/api';
+import SignatureCanvas from '../../components/SignatureCanvas';
+import { generateAngketPendaftaranPDF } from '../../utils/angketPdfGenerator';
 
-// Helper parsing range waktu (e.g. "14:00 - 15:30")
+// Helper parsing range waktu
 const parseTimeRange = (timeStr) => {
     if (!timeStr) return null;
     const clean = timeStr.replace(/\./g, ':');
@@ -25,7 +31,7 @@ const checkConflict = (hari1, jam1, hari2, jam2) => {
 
     const r1 = parseTimeRange(jam1);
     const r2 = parseTimeRange(jam2);
-    if (!r1 || !r2) return true; // Anggap bentrok jika hari sama tapi format jam bebas
+    if (!r1 || !r2) return true;
 
     return (r1.start < r2.end) && (r2.start < r1.end);
 };
@@ -33,14 +39,31 @@ const checkConflict = (hari1, jam1, hari2, jam2) => {
 const SiswaDaftarForm = () => {
     const { id } = useParams();
     const navigate = useNavigate();
+
     const [ekskul, setEkskul] = useState(null);
+    const [allEkskuls, setAllEkskuls] = useState([]);
     const [myEkskuls, setMyEkskuls] = useState([]);
+    const [siswaProfile, setSiswaProfile] = useState(null);
     const [conflictEkskul, setConflictEkskul] = useState(null);
     const [loading, setLoading] = useState(true);
     const [submitting, setSubmitting] = useState(false);
     const [error, setError] = useState('');
-    const [file, setFile] = useState(null);
-    const [preview, setPreview] = useState(null);
+    const [activeTab, setActiveTab] = useState('template'); // 'template' (Otomatis) | 'upload' (Manual)
+
+    // Form Angket Persetujuan Orang Tua
+    const [angketData, setAngketData] = useState({
+        namaOrangTua: '',
+        hubungan: 'Orang Tua / Wali',
+        pilihan2: '',
+        pernyataanSetuju: true
+    });
+    const [signatureDataUrl, setSignatureDataUrl] = useState(null);
+    const [generatedPdfBlob, setGeneratedPdfBlob] = useState(null);
+    const [previewPdfUrl, setPreviewPdfUrl] = useState(null);
+
+    // Form Upload Manual
+    const [manualFile, setManualFile] = useState(null);
+    const [manualPreview, setManualPreview] = useState(null);
 
     useEffect(() => {
         fetchInitialData();
@@ -49,9 +72,11 @@ const SiswaDaftarForm = () => {
     const fetchInitialData = async () => {
         try {
             setLoading(true);
-            const [resTarget, resDashboard] = await Promise.all([
+            const [resTarget, resDashboard, resProfil, resEkskulList] = await Promise.all([
                 api.get(`/api/siswa/ekskul/${id}`),
-                api.get('/api/siswa/dashboard')
+                api.get('/api/siswa/dashboard'),
+                api.get('/api/siswa/profil'),
+                api.get('/api/siswa/ekskul').catch(() => ({ data: { data: [] } }))
             ]);
 
             let target = null;
@@ -66,6 +91,25 @@ const SiswaDaftarForm = () => {
             if (resDashboard.data.success) {
                 myApproved = resDashboard.data.data.my_ekskuls || [];
                 setMyEkskuls(myApproved);
+            }
+
+            if (resProfil.data.success) {
+                const sp = resProfil.data.data;
+                setSiswaProfile(sp);
+                // Pre-fill nama orang tua jika sudah ada di database siswa
+                setAngketData(prev => ({
+                    ...prev,
+                    namaOrangTua: sp.nama_ayah || sp.nama_ibu || ''
+                }));
+            }
+
+            if (resEkskulList.data.success) {
+                setAllEkskuls(resEkskulList.data.data || []);
+            }
+
+            // Validasi batas kuota maksimal 2 ekskul
+            if (myApproved.length >= 2) {
+                setError('Anda telah terdaftar pada 2 ekstrakurikuler. Sesuai kebijakan sekolah, setiap siswa hanya diperbolehkan mengikuti maksimal 2 ekstrakurikuler.');
             }
 
             // Validasi tabrakan / bentrok jadwal
@@ -85,15 +129,36 @@ const SiswaDaftarForm = () => {
         }
     };
 
-    const handleFileChange = (e) => {
+    const handleManualFileChange = (e) => {
         const selectedFile = e.target.files[0];
         if (selectedFile) {
-            setFile(selectedFile);
+            setManualFile(selectedFile);
             const reader = new FileReader();
             reader.onloadend = () => {
-                setPreview(reader.result);
+                setManualPreview(reader.result);
             };
             reader.readAsDataURL(selectedFile);
+        }
+    };
+
+    // Generate dan Download Dokumen Angket Resmi
+    const handleDownloadAngketPDF = async () => {
+        if (!siswaProfile || !ekskul) return;
+        try {
+            const result = await generateAngketPendaftaranPDF({
+                namaSiswa: siswaProfile.nama_siswa,
+                kelasNama: siswaProfile.nama_kelas,
+                noInduk: siswaProfile.no_induk,
+                namaEkskulPilihan1: ekskul.nama_ekskul,
+                namaEkskulPilihan2: angketData.pilihan2 || '-',
+                tahunPelajaran: '2025 - 2026',
+                namaOrangTua: angketData.namaOrangTua || 'Orang Tua / Wali Siswa',
+                hubungan: angketData.hubungan,
+                tandaTanganDataUrl: signatureDataUrl
+            });
+            result.save();
+        } catch (err) {
+            alert('Gagal membuat file PDF angket: ' + err.message);
         }
     };
 
@@ -105,31 +170,68 @@ const SiswaDaftarForm = () => {
             return;
         }
 
-        if (!file) {
-            setError('Harap unggah foto surat izin orang tua');
-            return;
-        }
-
         try {
             setSubmitting(true);
             setError('');
 
+            let fileToUpload = null;
+
+            if (activeTab === 'template') {
+                if (!angketData.namaOrangTua.trim()) {
+                    setError('Mohon masukkan nama Orang Tua / Wali yang menyetujui angket.');
+                    setSubmitting(false);
+                    return;
+                }
+                if (!signatureDataUrl) {
+                    setError('Mohon goreskan tanda tangan Orang Tua / Wali pada area digital.');
+                    setSubmitting(false);
+                    return;
+                }
+                if (!angketData.pernyataanSetuju) {
+                    setError('Pernyataan persetujuan harus dicentang.');
+                    setSubmitting(false);
+                    return;
+                }
+
+                // Generate PDF Dokumen Angket secara otomatis di client!
+                const pdfResult = await generateAngketPendaftaranPDF({
+                    namaSiswa: siswaProfile.nama_siswa,
+                    kelasNama: siswaProfile.nama_kelas,
+                    noInduk: siswaProfile.no_induk,
+                    namaEkskulPilihan1: ekskul.nama_ekskul,
+                    namaEkskulPilihan2: angketData.pilihan2 || '-',
+                    tahunPelajaran: '2025 - 2026',
+                    namaOrangTua: angketData.namaOrangTua,
+                    hubungan: angketData.hubungan,
+                    tandaTanganDataUrl: signatureDataUrl
+                });
+
+                fileToUpload = new File([pdfResult.blob], pdfResult.fileName, { type: 'application/pdf' });
+            } else {
+                if (!manualFile) {
+                    setError('Harap pilih berkas foto / dokumen surat izin untuk diunggah.');
+                    setSubmitting(false);
+                    return;
+                }
+                fileToUpload = manualFile;
+            }
+
             const formData = new FormData();
             formData.append('ekskul_id', id);
-            formData.append('surat_ijin', file);
+            formData.append('surat_ijin', fileToUpload);
 
             const response = await api.post('/api/siswa/daftar', formData, {
                 headers: { 'Content-Type': 'multipart/form-data' }
             });
 
             if (response.data.success) {
-                alert('Pendaftaran berhasil! Tunggu persetujuan dari Admin.');
+                alert('Pendaftaran berhasil! Dokumen angket persetujuan orang tua telah terisi dan terkirim otomatis ke Admin.');
                 navigate('/siswa/ekskul');
             } else {
                 setError(response.data.message || 'Gagal mendaftar');
             }
         } catch (err) {
-            setError(err.response?.data?.message || 'Terjadi kesalahan saat mendaftar');
+            setError(err.response?.data?.message || 'Terjadi kesalahan saat memproses pendaftaran');
         } finally {
             setSubmitting(false);
         }
@@ -152,15 +254,15 @@ const SiswaDaftarForm = () => {
     }
 
     return (
-        <div className="max-w-4xl mx-auto space-y-8 pb-10 font-sans">
+        <div className="max-w-4xl mx-auto space-y-8 pb-12 font-sans">
             <button
                 onClick={() => navigate('/siswa/ekskul')}
-                className="flex items-center gap-2 text-slate-500 hover:text-[#000080] font-bold transition-colors group"
+                className="flex items-center gap-2 text-slate-500 hover:text-[#000080] font-bold transition-colors group cursor-pointer"
             >
                 <ArrowLeft size={20} className="group-hover:-translate-x-1 transition-transform" /> Kembali ke Daftar Ekskul
             </button>
 
-            {/* MODAL / BANNER PERINGATAN JADWAL BERTABRAKAN */}
+            {/* PERINGATAN JADWAL BERTABRAKAN */}
             {conflictEkskul && (
                 <div className="bg-gradient-to-br from-rose-50 to-orange-50 border-2 border-rose-300 rounded-[2.5rem] p-8 shadow-xl relative overflow-hidden animate-shake">
                     <div className="flex flex-col md:flex-row items-start gap-6">
@@ -175,32 +277,13 @@ const SiswaDaftarForm = () => {
                                 Waktu Latihan Bertabrakan!
                             </h2>
                             <p className="text-rose-800 font-semibold text-sm leading-relaxed">
-                                Anda sudah terdaftar pada ekstrakurikuler <strong className="underline decoration-rose-500 decoration-2">{conflictEkskul.nama_ekskul}</strong> dengan jadwal latihan hari <strong>{conflictEkskul.hari}</strong> pukul <strong>{conflictEkskul.jam}</strong>.
+                                Anda sudah terdaftar pada ekskul <strong className="underline decoration-rose-500 decoration-2">{conflictEkskul.nama_ekskul}</strong> ({conflictEkskul.hari} jam {conflictEkskul.jam}).
                             </p>
                             <p className="text-rose-800 font-semibold text-sm leading-relaxed">
-                                Ekskul <strong className="underline decoration-rose-500 decoration-2">{ekskul.nama_ekskul}</strong> yang ingin Anda daftar juga dilaksanakan pada hari <strong>{ekskul.hari}</strong> pukul <strong>{ekskul.jam}</strong>.
+                                Ekskul <strong className="underline decoration-rose-500 decoration-2">{ekskul.nama_ekskul}</strong> juga dilaksanakan pada hari yang sama ({ekskul.hari} jam {ekskul.jam}).
                             </p>
-                            <div className="bg-white/80 backdrop-blur-sm p-4 rounded-2xl border border-rose-200 text-xs font-bold text-slate-700 space-y-1">
-                                <p className="text-rose-700 font-black flex items-center gap-1.5 uppercase tracking-wide">
-                                    <HelpCircle size={15} /> Arahan Sistem:
-                                </p>
-                                <p>
-                                    Anda <strong>hanya dapat memilih salah satu</strong> dari kedua ekstrakurikuler tersebut agar kehadiran dan jadwal latihan Anda tidak saling mengganggu.
-                                </p>
-                            </div>
-                            <div className="flex flex-wrap items-center gap-3 pt-2">
-                                <button
-                                    onClick={() => navigate('/siswa/ekskul')}
-                                    className="px-6 py-3 bg-rose-600 hover:bg-rose-700 text-white rounded-xl font-black text-xs uppercase tracking-widest shadow-md shadow-rose-600/30 active:scale-95 transition-all"
-                                >
-                                    Pilih Ekskul Lain
-                                </button>
-                                <button
-                                    onClick={() => navigate('/siswa')}
-                                    className="px-6 py-3 bg-white hover:bg-slate-50 text-slate-700 rounded-xl font-bold text-xs border border-slate-200 shadow-sm active:scale-95 transition-all"
-                                >
-                                    Kembali ke Dashboard Saya
-                                </button>
+                            <div className="bg-white/80 p-4 rounded-2xl border border-rose-200 text-xs font-bold text-slate-700">
+                                Siswa hanya diperbolehkan memilih salah satu agar kegiatan tidak terganggu.
                             </div>
                         </div>
                     </div>
@@ -208,11 +291,9 @@ const SiswaDaftarForm = () => {
             )}
 
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-                {/* LEFT: EKSKUL INFO */}
+                {/* LEFT: EKSKUL INFO & ANGKET PREVIEW */}
                 <div className="lg:col-span-1 space-y-6">
                     <div className="bg-white rounded-[2rem] p-6 shadow-sm border border-slate-100 overflow-hidden relative">
-                        <div className="absolute top-0 right-0 w-32 h-32 bg-[#000080]/5 rounded-full -mr-16 -mt-16 blur-2xl"></div>
-
                         <div className="relative z-10 space-y-4">
                             <div className="w-14 h-14 bg-blue-50 rounded-2xl flex items-center justify-center text-[#000080] shadow-inner border border-blue-100">
                                 <Trophy size={28} />
@@ -226,55 +307,85 @@ const SiswaDaftarForm = () => {
                                 </span>
                             </div>
 
-                            <div className="space-y-4 pt-4 border-t border-slate-50">
+                            <div className="space-y-4 pt-4 border-t border-slate-100 text-sm">
                                 <div className="flex items-start gap-3 text-slate-600">
                                     <div className="w-8 h-8 rounded-lg bg-slate-50 flex items-center justify-center text-[#000080] shrink-0 mt-0.5">
                                         <Calendar size={16} />
                                     </div>
-                                    <div className="text-sm font-bold uppercase tracking-tight flex flex-col">
-                                        {ekskul.hari ? ekskul.hari.split(',').map((h, i) => (
-                                            <span key={i}>{h.trim()}</span>
-                                        )) : <span>-</span>}
+                                    <div className="font-bold uppercase tracking-tight flex flex-col">
+                                        <span>{ekskul.hari || '-'}</span>
                                     </div>
                                 </div>
                                 <div className="flex items-start gap-3 text-slate-600">
                                     <div className="w-8 h-8 rounded-lg bg-slate-50 flex items-center justify-center text-indigo-600 shrink-0 mt-0.5">
                                         <Clock size={16} />
                                     </div>
-                                    <div className="text-sm font-bold flex flex-col">
-                                        {ekskul.jam ? ekskul.jam.split(',').map((j, i) => (
-                                            <span key={i}>{j.trim()}</span>
-                                        )) : <span>-</span>}
+                                    <div className="font-bold">
+                                        <span>{ekskul.jam || '-'}</span>
                                     </div>
                                 </div>
                                 <div className="flex items-center gap-3 text-slate-600">
                                     <div className="w-8 h-8 rounded-lg bg-slate-50 flex items-center justify-center text-emerald-600">
                                         <MapPin size={16} />
                                     </div>
-                                    <p className="text-sm font-bold">{ekskul.tempat ? `R. ${ekskul.tempat}` : '-'}</p>
+                                    <p className="font-bold">{ekskul.tempat ? `R. ${ekskul.tempat}` : '-'}</p>
                                 </div>
                                 <div className="flex items-center gap-3 text-slate-600">
                                     <div className="w-8 h-8 rounded-lg bg-slate-50 flex items-center justify-center text-rose-600">
                                         <User size={16} />
                                     </div>
-                                    <p className="text-sm font-bold">{ekskul.nama_pelatih || '-'}</p>
+                                    <p className="font-bold">{ekskul.nama_pelatih || '-'}</p>
                                 </div>
                             </div>
                         </div>
                     </div>
+
+                    {/* PREVIEW KOTAK INFO TEMPLATE */}
+                    <div className="bg-gradient-to-br from-blue-50/70 to-indigo-50/50 p-6 rounded-[2rem] border border-blue-100 space-y-3">
+                        <div className="flex items-center gap-2 text-[#000080] font-black text-xs uppercase tracking-wider">
+                            <Sparkles size={16} /> Template Angket Otomatis
+                        </div>
+                        <p className="text-xs text-slate-600 font-medium leading-relaxed">
+                            Formulir ini menggunakan format resmi <strong>SMP Katolik Santa Maria II</strong>. Dokumen PDF akan digenerate otomatis beserta kop surat, nomor surat, dan tanda tangan digital.
+                        </p>
+                        <button
+                            type="button"
+                            onClick={handleDownloadAngketPDF}
+                            className="w-full mt-2 py-2.5 px-4 bg-white hover:bg-slate-50 text-[#000080] border border-blue-200 rounded-xl text-xs font-bold transition flex items-center justify-center gap-2 shadow-sm cursor-pointer"
+                        >
+                            <Download size={14} /> Download Lembar Template (PDF)
+                        </button>
+                    </div>
                 </div>
 
-                {/* RIGHT: FORM UPLOAD */}
+                {/* RIGHT: FORM ANGKET & PERSETUJUAN ORANG TUA */}
                 <div className="lg:col-span-2 space-y-6">
-                    <form onSubmit={handleSubmit} className="bg-white rounded-[2rem] p-8 shadow-xl border border-slate-100 flex flex-col items-center text-center">
-                        <div className="w-16 h-16 bg-emerald-50 text-emerald-600 rounded-full flex items-center justify-center mb-6 shadow-inner border border-emerald-100">
-                            <Camera size={32} />
+                    <div className="bg-white rounded-[2rem] p-8 shadow-xl border border-slate-100">
+                        {/* TAB PILIHAN METODE */}
+                        <div className="flex bg-slate-100 p-1.5 rounded-2xl mb-8">
+                            <button
+                                type="button"
+                                onClick={() => setActiveTab('template')}
+                                className={`flex-1 py-3 rounded-xl font-extrabold text-xs uppercase tracking-wider transition-all flex items-center justify-center gap-2 cursor-pointer ${
+                                    activeTab === 'template'
+                                        ? 'bg-[#000080] text-white shadow-md'
+                                        : 'text-slate-500 hover:text-slate-800'
+                                }`}
+                            >
+                                <Sparkles size={16} /> Isi Angket Otomatis (Direkomendasikan)
+                            </button>
+                            <button
+                                type="button"
+                                onClick={() => setActiveTab('upload')}
+                                className={`flex-1 py-3 rounded-xl font-extrabold text-xs uppercase tracking-wider transition-all flex items-center justify-center gap-2 cursor-pointer ${
+                                    activeTab === 'upload'
+                                        ? 'bg-[#000080] text-white shadow-md'
+                                        : 'text-slate-500 hover:text-slate-800'
+                                }`}
+                            >
+                                <Camera size={16} /> Upload Foto Fisik
+                            </button>
                         </div>
-
-                        <h1 className="text-2xl font-black text-slate-800 tracking-tight">Form Pendaftaran</h1>
-                        <p className="text-slate-500 font-medium max-w-md mt-2 mb-8">
-                            Harap unggah foto <strong>Surat Izin Orang Tua</strong> yang sudah ditandatangani untuk melanjutkan pendaftaran.
-                        </p>
 
                         {error && (
                             <div className="w-full bg-red-50 text-red-600 p-4 rounded-2xl flex items-center gap-3 border border-red-100 mb-6 text-left">
@@ -283,64 +394,193 @@ const SiswaDaftarForm = () => {
                             </div>
                         )}
 
-                        {/* UPLOAD AREA */}
-                        <div className="w-full group">
-                            <label className={`
-                                w-full min-h-[250px] rounded-[1.8rem] border-2 border-dashed 
-                                flex flex-col items-center justify-center p-6 transition-all relative overflow-hidden
-                                ${conflictEkskul ? 'border-slate-200 bg-slate-50 opacity-60 cursor-not-allowed' : preview ? 'border-emerald-500 bg-emerald-50/20 cursor-pointer' : 'border-slate-200 hover:border-[#000080] hover:bg-slate-50 cursor-pointer'}
-                            `}>
-                                <input
-                                    type="file"
-                                    disabled={Boolean(conflictEkskul)}
-                                    className="hidden"
-                                    accept="image/*,.pdf"
-                                    onChange={handleFileChange}
-                                />
-
-                                {preview ? (
-                                    <div className="absolute inset-0 w-full h-full p-2 group-hover:opacity-75 transition-opacity">
-                                        <img src={preview} alt="Preview" className="w-full h-full object-contain rounded-2xl" />
-                                        <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity bg-black/20 text-white font-black text-xs uppercase tracking-widest">
-                                            Ganti Gambar
+                        <form onSubmit={handleSubmit} className="space-y-6">
+                            {activeTab === 'template' ? (
+                                <>
+                                    {/* DATA SISWA (READ-ONLY) */}
+                                    <div className="p-5 bg-slate-50 rounded-2xl border border-slate-200/80 space-y-3 text-left">
+                                        <p className="text-xs font-black text-slate-400 uppercase tracking-widest">Data Calon Peserta Ekskul</p>
+                                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-sm">
+                                            <div>
+                                                <span className="text-xs text-slate-400 block font-bold">Nama Lengkap</span>
+                                                <span className="font-bold text-slate-800">{siswaProfile?.nama_siswa || '-'}</span>
+                                            </div>
+                                            <div>
+                                                <span className="text-xs text-slate-400 block font-bold">Kelas / No. Induk</span>
+                                                <span className="font-bold text-slate-800">{siswaProfile?.nama_kelas || '-'} / {siswaProfile?.no_induk || '-'}</span>
+                                            </div>
                                         </div>
                                     </div>
-                                ) : (
-                                    <div className="flex flex-col items-center text-slate-400 group-hover:text-[#000080] transition-colors">
-                                        <Upload size={48} strokeWidth={1} className="mb-4" />
-                                        <p className="font-black text-sm uppercase tracking-widest">Pilih File / Foto</p>
-                                        <p className="text-[10px] mt-1 italic">Maksimal 2MB (JPG, PNG, PDF)</p>
-                                    </div>
-                                )}
-                            </label>
-                        </div>
 
-                        <button
-                            type="submit"
-                            disabled={!file || submitting || Boolean(conflictEkskul)}
-                            className={`
-                                w-full mt-10 py-4 rounded-2xl font-black uppercase tracking-[0.15em] transition-all flex items-center justify-center gap-3 shadow-xl
-                                ${file && !submitting && !conflictEkskul
-                                    ? 'bg-[#000080] text-white hover:bg-blue-900 shadow-blue-900/20 active:scale-95'
-                                    : 'bg-slate-100 text-slate-400 cursor-not-allowed'}
-                            `}
-                        >
-                            {submitting ? (
-                                <>
-                                    <div className="w-5 h-5 border-2 border-white/20 border-t-white rounded-full animate-spin"></div>
-                                    Memproses...
-                                </>
-                            ) : conflictEkskul ? (
-                                <>
-                                    Jadwal Bertabrakan (Pilih Salah Satu)
+                                    {/* PILIHAN EKSTRAKURIKULER */}
+                                    <div className="space-y-4 text-left">
+                                        <div>
+                                            <label className="text-xs font-black text-slate-700 uppercase tracking-wider block mb-1.5">
+                                                1. Pilihan Ekstrakurikuler Utama (Pilihan 1)
+                                            </label>
+                                            <input
+                                                type="text"
+                                                readOnly
+                                                value={ekskul.nama_ekskul}
+                                                className="w-full px-4 py-3 bg-slate-100 border border-slate-200 rounded-xl font-bold text-[#000080] outline-none"
+                                            />
+                                        </div>
+
+                                        <div>
+                                            <label className="text-xs font-black text-slate-700 uppercase tracking-wider block mb-1.5">
+                                                2. Pilihan Ekstrakurikuler Kedua (Opsional)
+                                            </label>
+                                            <select
+                                                value={angketData.pilihan2}
+                                                onChange={(e) => setAngketData({ ...angketData, pilihan2: e.target.value })}
+                                                className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl font-medium text-slate-800 focus:ring-2 focus:ring-[#000080]/20 focus:border-[#000080] outline-none"
+                                            >
+                                                <option value="">-- Tidak Memilih Pilihan 2 (-) --</option>
+                                                {allEkskuls
+                                                    .filter(e => String(e.id) !== String(ekskul.id))
+                                                    .map(e => (
+                                                        <option key={e.id} value={e.nama_ekskul}>
+                                                            {e.nama_ekskul} ({e.hari || 'Jadwal belum ditentukan'})
+                                                        </option>
+                                                    ))
+                                                }
+                                            </select>
+                                        </div>
+                                    </div>
+
+                                    {/* DATA ORANG TUA / WALI */}
+                                    <div className="space-y-4 text-left pt-2 border-t border-slate-100">
+                                        <div className="flex items-center gap-2 text-slate-800 font-extrabold text-sm">
+                                            <ShieldCheck size={18} className="text-[#000080]" />
+                                            Persetujuan Orang Tua / Wali Siswa
+                                        </div>
+
+                                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                                            <div>
+                                                <label className="text-xs font-bold text-slate-600 uppercase tracking-wider block mb-1">
+                                                    Nama Lengkap Orang Tua / Wali *
+                                                </label>
+                                                <input
+                                                    type="text"
+                                                    required
+                                                    placeholder="Contoh: Bpk. Stefanus / Suster Emiliana"
+                                                    value={angketData.namaOrangTua}
+                                                    onChange={(e) => setAngketData({ ...angketData, namaOrangTua: e.target.value })}
+                                                    className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl font-bold text-slate-800 focus:ring-2 focus:ring-[#000080]/20 focus:border-[#000080] outline-none"
+                                                />
+                                            </div>
+                                            <div>
+                                                <label className="text-xs font-bold text-slate-600 uppercase tracking-wider block mb-1">
+                                                    Status Hubungan
+                                                </label>
+                                                <select
+                                                    value={angketData.hubungan}
+                                                    onChange={(e) => setAngketData({ ...angketData, hubungan: e.target.value })}
+                                                    className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl font-bold text-slate-800 outline-none"
+                                                >
+                                                    <option value="Orang Tua / Wali">Orang Tua / Wali</option>
+                                                    <option value="Ayah Kandung">Ayah Kandung</option>
+                                                    <option value="Ibu Kandung">Ibu Kandung</option>
+                                                    <option value="Suster / Asrama">Suster / Wali Asrama</option>
+                                                </select>
+                                            </div>
+                                        </div>
+
+                                        {/* TANDA TANGAN DIGITAL */}
+                                        <div className="space-y-1.5 pt-2">
+                                            <label className="text-xs font-bold text-slate-700 uppercase tracking-wider flex items-center justify-between">
+                                                <span>Tanda Tangan Digital Orang Tua / Wali *</span>
+                                                {signatureDataUrl && (
+                                                    <span className="text-[11px] font-bold text-emerald-600 flex items-center gap-1">
+                                                        <CheckCircle2 size={13} /> Tanda tangan terekam
+                                                    </span>
+                                                )}
+                                            </label>
+                                            <SignatureCanvas
+                                                onSave={(dataUrl) => setSignatureDataUrl(dataUrl)}
+                                                onClear={() => setSignatureDataUrl(null)}
+                                            />
+                                        </div>
+
+                                        {/* CHECKBOX PERNYATAAN */}
+                                        <label className="flex items-start gap-3 p-4 bg-slate-50 rounded-2xl border border-slate-200 cursor-pointer">
+                                            <input
+                                                type="checkbox"
+                                                checked={angketData.pernyataanSetuju}
+                                                onChange={(e) => setAngketData({ ...angketData, pernyataanSetuju: e.target.checked })}
+                                                className="mt-1 w-4 h-4 text-[#000080] rounded focus:ring-[#000080]"
+                                            />
+                                            <span className="text-xs text-slate-600 font-medium leading-relaxed">
+                                                Kami menyatakan dengan sebenarnya bahwa ekstrakurikuler tersebut adalah kegiatan yang kami pilih dan jalani selama Tahun Pelajaran 2025 - 2026 di SMP Katolik Santa Maria II Malang.
+                                            </span>
+                                        </label>
+                                    </div>
                                 </>
                             ) : (
-                                <>
-                                    Daftar Sekarang <CheckCircle2 size={18} />
-                                </>
+                                /* TAB UPLOAD BERKAS MANUAL */
+                                <div className="space-y-4 text-center">
+                                    <p className="text-slate-500 font-medium text-sm">
+                                        Unggah foto angket fisik yang sudah dicetak dan ditandatangani manual oleh orang tua.
+                                    </p>
+
+                                    <div className="w-full group">
+                                        <label className={`
+                                            w-full min-h-[220px] rounded-[1.8rem] border-2 border-dashed 
+                                            flex flex-col items-center justify-center p-6 transition-all relative overflow-hidden
+                                            ${manualPreview ? 'border-emerald-500 bg-emerald-50/20 cursor-pointer' : 'border-slate-200 hover:border-[#000080] hover:bg-slate-50 cursor-pointer'}
+                                        `}>
+                                            <input
+                                                type="file"
+                                                className="hidden"
+                                                accept="image/*,.pdf"
+                                                onChange={handleManualFileChange}
+                                            />
+
+                                            {manualPreview ? (
+                                                <div className="absolute inset-0 w-full h-full p-2 group-hover:opacity-75 transition-opacity">
+                                                    <img src={manualPreview} alt="Preview" className="w-full h-full object-contain rounded-2xl" />
+                                                    <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity bg-black/20 text-white font-black text-xs uppercase tracking-widest">
+                                                        Ganti Gambar
+                                                    </div>
+                                                </div>
+                                            ) : (
+                                                <div className="flex flex-col items-center text-slate-400 group-hover:text-[#000080] transition-colors">
+                                                    <Upload size={44} strokeWidth={1} className="mb-3" />
+                                                    <p className="font-black text-sm uppercase tracking-widest">Pilih File / Foto Angket</p>
+                                                    <p className="text-[10px] mt-1 italic">Maksimal 2MB (JPG, PNG, PDF)</p>
+                                                </div>
+                                            )}
+                                        </label>
+                                    </div>
+                                </div>
                             )}
-                        </button>
-                    </form>
+
+                            {/* SUBMIT BUTTON */}
+                            <button
+                                type="submit"
+                                disabled={submitting || Boolean(conflictEkskul)}
+                                className={`
+                                    w-full py-4 rounded-2xl font-black uppercase tracking-[0.15em] transition-all flex items-center justify-center gap-3 shadow-xl cursor-pointer
+                                    ${!submitting && !conflictEkskul
+                                        ? 'bg-[#000080] text-white hover:bg-blue-900 shadow-blue-900/20 active:scale-95'
+                                        : 'bg-slate-100 text-slate-400 cursor-not-allowed'}
+                                `}
+                            >
+                                {submitting ? (
+                                    <>
+                                        <div className="w-5 h-5 border-2 border-white/20 border-t-white rounded-full animate-spin"></div>
+                                        Membuat Dokumen Angket & Mendaftar...
+                                    </>
+                                ) : conflictEkskul ? (
+                                    <>Jadwal Bertabrakan (Pilih Salah Satu)</>
+                                ) : (
+                                    <>
+                                        Daftar & Kirim Angket Resmi <CheckCircle2 size={18} />
+                                    </>
+                                )}
+                            </button>
+                        </form>
+                    </div>
                 </div>
             </div>
         </div>

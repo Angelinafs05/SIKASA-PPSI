@@ -710,7 +710,7 @@ class AbsensiController
      */
     public static function adminListIzin(): void
     {
-        requireRole('admin', 'kepala_sekolah', 'pendamping');
+        $user = requireRole('admin', 'kepala_sekolah', 'pendamping');
         $db = getDB();
         $period = getActivePeriod();
 
@@ -732,6 +732,12 @@ class AbsensiController
         ";
         $params = [':t' => $tahun, ':s' => $sem];
 
+        // Jika user adalah pendamping, batasi izin hanya untuk ekskul yang didampinginya
+        if ($user->role === 'pendamping') {
+            $sql .= " AND p.guru_id = :guru_id";
+            $params[':guru_id'] = $user->ref_id;
+        }
+
         if ($statusFilter) {
             $sql .= " AND a.status_izin = :st";
             $params[':st'] = $statusFilter;
@@ -750,7 +756,7 @@ class AbsensiController
      */
     public static function adminUpdateIzin(int $id): void
     {
-        requireRole('admin');
+        $user = requireRole('admin', 'pendamping');
         $data = getRequestBody();
         $db = getDB();
 
@@ -761,6 +767,20 @@ class AbsensiController
             errorResponse('Status izin tidak valid', 400);
         }
 
+        // Jika pendamping, pastikan izin ini berasal dari ekskul yang didampinginya
+        if ($user->role === 'pendamping') {
+            $checkStmt = $db->prepare("
+                SELECT a.id 
+                FROM absensi a 
+                JOIN pelatih p ON a.id_pelatih = p.id 
+                WHERE a.id = :id AND p.guru_id = :guru_id
+            ");
+            $checkStmt->execute([':id' => $id, ':guru_id' => $user->ref_id]);
+            if (!$checkStmt->fetch()) {
+                errorResponse('Anda tidak berwenang mengelola izin ini', 403);
+            }
+        }
+
         $stmt = $db->prepare("UPDATE absensi SET status_izin = :st, catatan_izin = :cat WHERE id = :id");
         $stmt->execute([':st' => $statusIzin, ':cat' => $catatan, ':id' => $id]);
 
@@ -768,21 +788,23 @@ class AbsensiController
     }
 
     /**
-     * GET /api/admin/rekap-absensi?ekskul_id=...&bulan=...&tahun=...
+     * GET /api/admin/rekap-absensi?ekskul_id=...&bulan=...&tahun=...&kelas_id=...
      */
     public static function rekapAbsensi(): void
     {
-        requireRole('admin', 'kepala_sekolah', 'pendamping');
+        $user = requireRole('admin', 'kepala_sekolah', 'pendamping');
         $db = getDB();
         $period = getActivePeriod();
 
         $ekskulId = $_GET['ekskul_id'] ?? null;
+        $kelasId = $_GET['kelas_id'] ?? null;
         $tahun = $_GET['tahun'] ?? $period['tahun_ajaran'];
         $sem = $_GET['semester'] ?? $period['semester'];
 
         $sql = "
-            SELECT s.id, s.no_induk, s.nama_siswa, k.nama_kelas,
-                   e.nama_ekskul,
+            SELECT s.id, s.no_induk, s.nama_siswa, s.kelas_id, k.nama_kelas,
+                   e.id AS ekskul_id, e.nama_ekskul, e.hari, e.jam, e.tempat,
+                   p.nama_pelatih, g.nama_guru AS nama_pendamping,
                    COUNT(CASE WHEN a.status = 'Hadir' THEN 1 END) as total_hadir,
                    COUNT(CASE WHEN a.status = 'Izin' THEN 1 END) as total_izin,
                    COUNT(CASE WHEN a.status = 'Sakit' THEN 1 END) as total_sakit,
@@ -792,8 +814,10 @@ class AbsensiController
             JOIN siswa s ON pe.siswa_id = s.id
             LEFT JOIN kelas k ON s.kelas_id = k.id
             JOIN ekstrakurikuler e ON pe.ekskul_id = e.id
+            LEFT JOIN pelatih p ON (p.ekskul_id = e.id OR p.ekskul_id IN (SELECT id FROM ekstrakurikuler WHERE nama_ekskul = e.nama_ekskul))
+            LEFT JOIN guru_pendamping g ON p.guru_id = g.id
             LEFT JOIN absensi a ON a.id_siswa = s.id AND a.tahun_ajaran = :t1 AND a.semester = :s1
-                 AND a.id_pelatih IN (SELECT id FROM pelatih WHERE ekskul_id = pe.ekskul_id)
+                 AND a.id_pelatih = p.id
             WHERE pe.status = 'approved' AND pe.tahun_ajaran = :t2 AND pe.semester = :s2
         ";
         $params = [
@@ -801,9 +825,28 @@ class AbsensiController
             ':t2' => $tahun, ':s2' => $sem
         ];
 
+        // Jika user adalah pendamping, batasi hanya ekskul yang didampinginya
+        if ($user->role === 'pendamping') {
+            $sql .= " AND p.guru_id = :guru_id";
+            $params[':guru_id'] = $user->ref_id;
+        }
+
         if ($ekskulId) {
-            $sql .= " AND pe.ekskul_id = :eid";
-            $params[':eid'] = $ekskulId;
+            if (is_numeric($ekskulId)) {
+                $sql .= " AND pe.ekskul_id IN (
+                    SELECT id FROM ekstrakurikuler 
+                    WHERE nama_ekskul = (SELECT nama_ekskul FROM ekstrakurikuler WHERE id = :eid LIMIT 1)
+                )";
+                $params[':eid'] = $ekskulId;
+            } else {
+                $sql .= " AND e.nama_ekskul = :enama";
+                $params[':enama'] = $ekskulId;
+            }
+        }
+
+        if ($kelasId) {
+            $sql .= " AND s.kelas_id = :kid";
+            $params[':kid'] = $kelasId;
         }
 
         $sql .= " GROUP BY s.id, pe.ekskul_id ORDER BY k.nama_kelas ASC, s.nama_siswa ASC";

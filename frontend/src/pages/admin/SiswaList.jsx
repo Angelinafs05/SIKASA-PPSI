@@ -4,8 +4,12 @@ import {
     Upload, Users, AlertTriangle, FileSpreadsheet, GraduationCap
 } from 'lucide-react';
 import api from '../../api/api';
+import { useAuth } from '../../context/AuthContext';
 
 const SiswaList = () => {
+    const { user } = useAuth();
+    const isReadOnly = user?.role === 'kepala_sekolah';
+
     const [siswa, setSiswa] = useState([]);
     const [siswaMaster, setSiswaMaster] = useState([]);
     const [kelases, setKelases] = useState([]);
@@ -432,24 +436,28 @@ const SiswaList = () => {
                                     ))}
                                 </select>
                             </div>
-                            <button
-                                onClick={() => setActiveView('promote')}
-                                className="bg-amber-500 hover:bg-amber-600 text-white font-bold py-2 px-4 rounded-xl flex items-center gap-2 shadow-md transition-all active:scale-95 text-sm"
-                            >
-                                <Activity size={16} /> Kenaikan Kelas
-                            </button>
-                            <button
-                                onClick={() => setActiveView('import')}
-                                className="bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-2 px-4 rounded-xl flex items-center gap-2 shadow-md transition-all active:scale-95 text-sm"
-                            >
-                                <Upload size={16} /> Import CSV
-                            </button>
-                            <button
-                                onClick={() => { resetForm(); setActiveView('form'); }}
-                                className="bg-[#000080] hover:bg-[#000066] text-white font-bold py-2 px-4 rounded-xl flex items-center gap-2 shadow-md transition-all active:scale-95 text-sm"
-                            >
-                                <UserPlus size={16} /> Tambah Siswa
-                            </button>
+                            {!isReadOnly && (
+                                <>
+                                    <button
+                                        onClick={() => setActiveView('promote')}
+                                        className="bg-amber-500 hover:bg-amber-600 text-white font-bold py-2 px-4 rounded-xl flex items-center gap-2 shadow-md transition-all active:scale-95 text-sm"
+                                    >
+                                        <Activity size={16} /> Kenaikan Kelas
+                                    </button>
+                                    <button
+                                        onClick={() => setActiveView('import')}
+                                        className="bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-2 px-4 rounded-xl flex items-center gap-2 shadow-md transition-all active:scale-95 text-sm"
+                                    >
+                                        <Upload size={16} /> Import CSV
+                                    </button>
+                                    <button
+                                        onClick={() => { resetForm(); setActiveView('form'); }}
+                                        className="bg-[#000080] hover:bg-[#000066] text-white font-bold py-2 px-4 rounded-xl flex items-center gap-2 shadow-md transition-all active:scale-95 text-sm"
+                                    >
+                                        <UserPlus size={16} /> Tambah Siswa
+                                    </button>
+                                </>
+                            )}
                         </>
                     )}
                 </div>
@@ -799,7 +807,7 @@ const SiswaList = () => {
                                         <th className="py-4 px-4 whitespace-nowrap">Nama Siswa</th>
                                         <th className="py-4 px-4 whitespace-nowrap">Kelas / Status</th>
                                         <th className="py-4 px-4 whitespace-nowrap">Jenis Akun</th>
-                                        <th className="py-4 px-4 text-center whitespace-nowrap">Aksi</th>
+                                        {!isReadOnly && <th className="py-4 px-4 text-center whitespace-nowrap">Aksi</th>}
                                     </tr>
                                 </thead>
                                 <tbody className="divide-y divide-slate-100">
@@ -823,12 +831,14 @@ const SiswaList = () => {
                                                     <span className="text-emerald-600 text-xs font-bold flex items-center gap-1"><CheckCircle size={14} /> Aktif</span>
                                                 ) : <span className="text-slate-400 text-xs italic">Tanpa Akun</span>}
                                             </td>
-                                            <td className="py-4 px-6 text-center whitespace-nowrap">
-                                                <div className="flex justify-center gap-2">
-                                                    <button onClick={() => handleEdit(item)} className="p-2 bg-blue-50 text-blue-600 hover:bg-blue-100 rounded-lg" title="Edit"><Edit2 size={16} /></button>
-                                                    <button onClick={() => handleDelete(item.id, item.nama_siswa)} className="p-2 bg-red-50 text-red-600 hover:bg-red-100 rounded-lg" title="Hapus"><Trash2 size={16} /></button>
-                                                </div>
-                                            </td>
+                                            {!isReadOnly && (
+                                                <td className="py-4 px-6 text-center whitespace-nowrap">
+                                                    <div className="flex justify-center gap-2">
+                                                        <button onClick={() => handleEdit(item)} className="p-2 bg-blue-50 text-blue-600 hover:bg-blue-100 rounded-lg" title="Edit"><Edit2 size={16} /></button>
+                                                        <button onClick={() => handleDelete(item.id, item.nama_siswa)} className="p-2 bg-red-50 text-red-600 hover:bg-red-100 rounded-lg" title="Hapus"><Trash2 size={16} /></button>
+                                                    </div>
+                                                </td>
+                                            )}
                                         </tr>
                                     ))}
                                 </tbody>

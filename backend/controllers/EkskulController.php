@@ -12,25 +12,48 @@ class EkskulController
      */
     public static function index(): void
     {
-        requireRole('admin', 'kepala_sekolah');
+        $user = requireRole('admin', 'kepala_sekolah', 'pendamping');
         $db = getDB();
 
         $period = getActivePeriod();
-        $stmt = $db->prepare("
-            SELECT e.*, p.id AS pelatih_id, p.nama_pelatih AS pelatih_nama, g.nama_guru AS pendamping,
-                   (SELECT COUNT(*) FROM pendaftaran_ekskul pe 
-                    WHERE pe.ekskul_id = e.id
-                    AND pe.status = 'approved' AND pe.tahun_ajaran = :t1) AS total_siswa
-            FROM ekstrakurikuler e
-            LEFT JOIN pelatih p ON p.ekskul_id = e.id
-            LEFT JOIN guru_pendamping g ON p.guru_id = g.id
-            ORDER BY 
-                FIELD(SUBSTRING_INDEX(e.hari, ',', 1), 'Senin', 'Selasa', 'Rabu', 'Kamis', 'Jumat', 'Sabtu', 'Minggu') ASC, 
-                e.nama_ekskul ASC
-        ");
-        $stmt->execute([
-            ':t1' => $period['tahun_ajaran']
-        ]);
+
+        if ($user->role === 'pendamping') {
+            // Khusus guru pendamping: hanya tampilkan ekskul yang didampinginya
+            $stmt = $db->prepare("
+                SELECT DISTINCT e.*, p.id AS pelatih_id, p.nama_pelatih AS pelatih_nama, g.nama_guru AS pendamping,
+                       (SELECT COUNT(*) FROM pendaftaran_ekskul pe 
+                        WHERE pe.ekskul_id = e.id
+                        AND pe.status = 'approved' AND pe.tahun_ajaran = :t1) AS total_siswa
+                FROM ekstrakurikuler e
+                JOIN pelatih p ON (p.ekskul_id = e.id OR p.ekskul_id IN (SELECT id FROM ekstrakurikuler WHERE nama_ekskul = e.nama_ekskul))
+                JOIN guru_pendamping g ON p.guru_id = g.id
+                WHERE p.guru_id = :guru_id
+                  AND e.tahun_ajaran = :t2 AND e.semester = :s2
+                ORDER BY e.nama_ekskul ASC
+            ");
+            $stmt->execute([
+                ':guru_id' => $user->ref_id,
+                ':t1' => $period['tahun_ajaran'],
+                ':t2' => $period['tahun_ajaran'],
+                ':s2' => $period['semester']
+            ]);
+        } else {
+            $stmt = $db->prepare("
+                SELECT e.*, p.id AS pelatih_id, p.nama_pelatih AS pelatih_nama, g.nama_guru AS pendamping,
+                       (SELECT COUNT(*) FROM pendaftaran_ekskul pe 
+                        WHERE pe.ekskul_id = e.id
+                        AND pe.status = 'approved' AND pe.tahun_ajaran = :t1) AS total_siswa
+                FROM ekstrakurikuler e
+                LEFT JOIN pelatih p ON p.ekskul_id = e.id
+                LEFT JOIN guru_pendamping g ON p.guru_id = g.id
+                ORDER BY 
+                    FIELD(SUBSTRING_INDEX(e.hari, ',', 1), 'Senin', 'Selasa', 'Rabu', 'Kamis', 'Jumat', 'Sabtu', 'Minggu') ASC, 
+                    e.nama_ekskul ASC
+            ");
+            $stmt->execute([
+                ':t1' => $period['tahun_ajaran']
+            ]);
+        }
 
         $rawEkskul = $stmt->fetchAll();
         $ekskuls = [];
@@ -319,7 +342,12 @@ class EkskulController
                 g.nama_guru AS pendamping_nama,
                 (SELECT status FROM pendaftaran_ekskul pe 
                  WHERE pe.ekskul_id IN (SELECT id FROM ekstrakurikuler WHERE nama_ekskul = e.nama_ekskul)
-                   AND pe.siswa_id = :sid AND pe.tahun_ajaran = :t1 AND pe.semester = :s1 LIMIT 1) AS my_status,
+                   AND pe.siswa_id = :sid AND pe.tahun_ajaran = :t1 AND pe.semester = :s1 
+                   AND pe.status NOT IN ('withdrawn', 'rejected') LIMIT 1) AS my_status,
+                (SELECT id FROM pendaftaran_ekskul pe 
+                 WHERE pe.ekskul_id IN (SELECT id FROM ekstrakurikuler WHERE nama_ekskul = e.nama_ekskul)
+                   AND pe.siswa_id = :sid3 AND pe.tahun_ajaran = :t3 AND pe.semester = :s3 
+                   AND pe.status NOT IN ('withdrawn', 'rejected') LIMIT 1) AS pendaftaran_id,
                 (SELECT COUNT(*) FROM pendaftaran_ekskul pe 
                  WHERE pe.ekskul_id IN (SELECT id FROM ekstrakurikuler WHERE nama_ekskul = e.nama_ekskul)
                    AND pe.status = 'approved' AND pe.tahun_ajaran = :t2 AND pe.semester = :s2) AS total_siswa
@@ -338,6 +366,9 @@ class EkskulController
             ':sid' => $sid,
             ':t1' => $t,
             ':s1' => $s,
+            ':sid3' => $sid,
+            ':t3' => $t,
+            ':s3' => $s,
             ':t2' => $t,
             ':s2' => $s
         ]);

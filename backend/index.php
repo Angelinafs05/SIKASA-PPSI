@@ -222,6 +222,34 @@ elseif ($uri === '/api/admin/rekap-absensi' && $method === 'GET') {
     NilaiController::rekapNilai();
 }
 
+// ADMIN / KEPALA SEKOLAH - HONOR
+elseif ($uri === '/api/admin/honor' && $method === 'GET') {
+    HonorController::index();
+} elseif ($uri === '/api/admin/honor' && $method === 'POST') {
+    HonorController::store();
+} elseif ($uri === '/api/admin/honor/summary' && $method === 'GET') {
+    HonorController::summary();
+} elseif (preg_match('#^/api/admin/honor/(\d+)/status$#', $uri, $m) && ($method === 'PUT' || $method === 'POST')) {
+    HonorController::updateStatus((int)$m[1]);
+} elseif (preg_match('#^/api/admin/honor/(\d+)$#', $uri, $m) && $method === 'DELETE') {
+    HonorController::destroy((int)$m[1]);
+}
+
+// ADMIN / KEPALA SEKOLAH - LOMBA
+elseif ($uri === '/api/admin/lomba' && $method === 'GET') {
+    LombaController::getAllLomba();
+} elseif ($uri === '/api/admin/lomba' && $method === 'POST') {
+    LombaController::createLomba();
+} elseif ($uri === '/api/admin/lomba/peserta' && $method === 'POST') {
+    LombaController::addPeserta();
+} elseif (preg_match('#^/api/admin/lomba/peserta/(\d+)$#', $uri, $m) && $method === 'DELETE') {
+    LombaController::removePeserta((int)$m[1]);
+} elseif (preg_match('#^/api/admin/lomba/(\d+)/hasil$#', $uri, $m) && $method === 'POST') {
+    LombaController::updateHasil((int)$m[1]);
+} elseif (preg_match('#^/api/admin/lomba/(\d+)$#', $uri, $m) && $method === 'DELETE') {
+    LombaController::deleteLomba((int)$m[1]);
+}
+
 // ADMIN - TAHUN AJARAN
 elseif ($uri === '/api/admin/tahun-ajaran' && $method === 'GET') {
     TahunAjaranController::index();
@@ -315,6 +343,8 @@ elseif ($uri === '/api/siswa/dashboard' && $method === 'GET') {
     EkskulController::siswaEkskul();
 } elseif ($uri === '/api/siswa/daftar' && $method === 'POST') {
     PendaftaranController::siswaDaftar();
+} elseif (preg_match('#^/api/siswa/pendaftaran/(\d+)/batal$#', $uri, $m) && ($method === 'DELETE' || $method === 'POST')) {
+    PendaftaranController::siswaBatalDaftar((int)$m[1]);
 } elseif ($uri === '/api/siswa/izin' && $method === 'GET') {
     AbsensiController::siswaIzinDetail();
 } elseif ($uri === '/api/siswa/izin' && $method === 'POST') {

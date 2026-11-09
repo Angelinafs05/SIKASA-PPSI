@@ -53,7 +53,9 @@ const SiswaEkskul = () => {
     const navigate = useNavigate();
     const [ekskuls, setEkskuls] = useState([]);
     const [myApprovedEkskuls, setMyApprovedEkskuls] = useState([]);
+    const [myPendingEkskuls, setMyPendingEkskuls] = useState([]);
     const [loading, setLoading] = useState(true);
+    const [cancellingId, setCancellingId] = useState(null);
     const [error, setError] = useState('');
     const [searchTerm, setSearchTerm] = useState('');
     const [conflictModal, setConflictModal] = useState(null); // { target: ekskul, conflictWith: ekskul }
@@ -77,7 +79,9 @@ const SiswaEkskul = () => {
             }
 
             if (resDashboard.data.success) {
-                setMyApprovedEkskuls(resDashboard.data.data.my_ekskuls || []);
+                const dash = resDashboard.data.data;
+                setMyApprovedEkskuls(dash.my_ekskuls || []);
+                setMyPendingEkskuls(dash.pending_ekskuls || []);
             }
         } catch (err) {
             setError(err.response?.data?.message || 'Terjadi kesalahan koneksi');
@@ -86,17 +90,26 @@ const SiswaEkskul = () => {
         }
     };
 
+    // Total pendaftaran aktif siswa (Approved + Pending)
+    const totalPilihanAktif = myApprovedEkskuls.length + myPendingEkskuls.length;
+
     // Fungsi klik tombol "Daftar Sekarang"
     const handleKlikDaftar = (targetEkskul) => {
+        // Cek kuota maksimal 2 ekstrakurikuler per siswa (termasuk yang masih pending)
+        if (totalPilihanAktif >= 2) {
+            alert('Batas Maksimal Tercapai: Anda sudah memilih 2 ekstrakurikuler (baik yang sudah disetujui maupun yang masih menunggu persetujuan). Sesuai aturan sekolah, Anda tidak dapat mendaftar ekskul lain. Jika ingin berganti, silakan batalkan pendaftaran yang masih menunggu persetujuan terlebih dahulu.');
+            return;
+        }
+
         // Cek apakah jadwal targetEkskul bertabrakan dengan ekskul yang sudah didaftar siswa
-        if (myApprovedEkskuls.length > 0) {
-            const bentrok = myApprovedEkskuls.find(my =>
+        const allSelected = [...myApprovedEkskuls, ...myPendingEkskuls];
+        if (allSelected.length > 0) {
+            const bentrok = allSelected.find(my =>
                 String(my.ekskul_id || my.id) !== String(targetEkskul.id) &&
                 checkScheduleConflict(targetEkskul.hari, targetEkskul.jam, my.hari, my.jam)
             );
 
             if (bentrok) {
-                // Munculkan notifikasi pop-up / modal bahwa jadwal bertabrakan dan arahkan pilih salah satu
                 setConflictModal({
                     target: targetEkskul,
                     conflictWith: bentrok
@@ -105,8 +118,37 @@ const SiswaEkskul = () => {
             }
         }
 
-        // Jika tidak bentrok, lanjut ke halaman formulir pendaftaran
+        // Jika tidak bentrok & belum mencapai 2 ekskul, lanjut ke formulir pendaftaran
         navigate(`/siswa/daftar/${targetEkskul.id}`);
+    };
+
+    // Fungsi Pembatalan Pendaftaran (Khusus status 'pending')
+    const handleBatalPendaftaran = async (pendaftaranId, namaEkskul) => {
+        if (!pendaftaranId) {
+            alert('ID pendaftaran tidak ditemukan');
+            return;
+        }
+
+        const confirmBatal = window.confirm(
+            `Apakah Anda yakin ingin membatalkan pendaftaran ekstrakurikuler ${namaEkskul}?\nSetelah dibatalkan, kuota pilihan Anda akan kembali tersedia dan Anda dapat mendaftar ekskul lainnya.`
+        );
+
+        if (!confirmBatal) return;
+
+        try {
+            setCancellingId(pendaftaranId);
+            const res = await api.delete(`/api/siswa/pendaftaran/${pendaftaranId}/batal`);
+            if (res.data.success) {
+                alert(res.data.message || 'Pendaftaran berhasil dibatalkan.');
+                fetchInitialData();
+            } else {
+                alert(res.data.message || 'Gagal membatalkan pendaftaran');
+            }
+        } catch (err) {
+            alert(err.response?.data?.message || 'Terjadi kesalahan saat membatalkan pendaftaran');
+        } finally {
+            setCancellingId(null);
+        }
     };
 
     const filteredEkskuls = ekskuls.filter(e =>
@@ -362,15 +404,62 @@ const SiswaEkskul = () => {
                                 </div>
 
                                 <div className="w-full md:w-auto self-end flex flex-col items-end gap-3 pt-4 md:pt-0">
-                                    {item.my_status ? (
+                                    {item.my_status === 'approved' && (
                                         getStatusBadge(item.my_status)
-                                    ) : (
-                                        <button
-                                            onClick={() => handleKlikDaftar(item)}
-                                            className="w-full md:w-auto bg-[#000080] hover:bg-blue-900 text-white px-10 py-4 rounded-[1.5rem] font-black text-sm uppercase tracking-widest shadow-xl shadow-blue-900/20 active:scale-95 transition-all flex items-center justify-center gap-3 group/btn"
-                                        >
-                                            Daftar Sekarang <ChevronRight size={20} className="group-hover/btn:translate-x-1.5 transition-transform" />
-                                        </button>
+                                    )}
+
+                                    {item.my_status === 'pending' && (
+                                        <div className="flex flex-col sm:flex-row items-center gap-2 w-full md:w-auto">
+                                            {getStatusBadge(item.my_status)}
+                                            <button
+                                                onClick={() => handleBatalPendaftaran(item.pendaftaran_id, item.nama_ekskul)}
+                                                disabled={cancellingId === item.pendaftaran_id}
+                                                className="w-full sm:w-auto px-4 py-2 bg-rose-50 hover:bg-rose-100 text-rose-600 border border-rose-200 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-1.5 active:scale-95 disabled:opacity-50"
+                                                title="Batalkan pendaftaran agar dapat memilih ekskul lain"
+                                            >
+                                                <X size={14} className="stroke-[2.5]" />
+                                                {cancellingId === item.pendaftaran_id ? 'Membatalkan...' : 'Batalkan Pendaftaran'}
+                                            </button>
+                                        </div>
+                                    )}
+
+                                    {item.my_status === 'rejected' && (
+                                        <div className="flex flex-col items-end gap-2">
+                                            {getStatusBadge(item.my_status)}
+                                            <button
+                                                onClick={() => handleKlikDaftar(item)}
+                                                disabled={totalPilihanAktif >= 2}
+                                                className={`w-full md:w-auto px-6 py-2.5 rounded-xl font-bold text-xs uppercase tracking-wider transition-all flex items-center justify-center gap-2 ${
+                                                    totalPilihanAktif >= 2
+                                                        ? 'bg-slate-100 text-slate-400 cursor-not-allowed border border-slate-200'
+                                                        : 'bg-[#000080] hover:bg-blue-900 text-white shadow-md'
+                                                }`}
+                                            >
+                                                Daftar Lagi <ChevronRight size={16} />
+                                            </button>
+                                        </div>
+                                    )}
+
+                                    {!item.my_status && (
+                                        <div className="flex flex-col items-end gap-1 w-full md:w-auto">
+                                            <button
+                                                onClick={() => handleKlikDaftar(item)}
+                                                disabled={totalPilihanAktif >= 2}
+                                                className={`w-full md:w-auto px-10 py-4 rounded-[1.5rem] font-black text-sm uppercase tracking-widest transition-all flex items-center justify-center gap-3 group/btn ${
+                                                    totalPilihanAktif >= 2
+                                                        ? 'bg-slate-200 text-slate-400 cursor-not-allowed border border-slate-300'
+                                                        : 'bg-[#000080] hover:bg-blue-900 text-white shadow-xl shadow-blue-900/20 active:scale-95'
+                                                }`}
+                                                title={totalPilihanAktif >= 2 ? 'Batas maksimal 2 ekskul sudah tercapai' : 'Daftar ekskul ini'}
+                                            >
+                                                Daftar Sekarang <ChevronRight size={20} className={totalPilihanAktif >= 2 ? '' : 'group-hover/btn:translate-x-1.5 transition-transform'} />
+                                            </button>
+                                            {totalPilihanAktif >= 2 && (
+                                                <span className="text-[11px] font-semibold text-amber-600 italic">
+                                                    Maksimal 2 pilihan ekskul sudah dipilih
+                                                </span>
+                                            )}
+                                        </div>
                                     )}
                                 </div>
                             </div>

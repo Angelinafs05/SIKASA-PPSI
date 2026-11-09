@@ -314,35 +314,35 @@ const KepalaSekolahDashboard = () => {
                             </div>
 
                             <div 
-                                onClick={() => navigate('/kepala_sekolah/honor')}
+                                onClick={() => navigate('/kepala_sekolah/monitoring-siswa')}
                                 className="p-6 bg-slate-50 rounded-3xl border border-slate-100 hover:border-emerald-200 hover:bg-white hover:shadow-xl transition-all group cursor-pointer"
                             >
-                                <h3 className="font-black text-slate-800 uppercase tracking-tight text-sm mb-2">Laporan Honor</h3>
-                                <p className="text-xs text-slate-400 font-medium leading-relaxed mb-4">Tinjau rangkuman pembayaran honor pelatih setiap bulannya.</p>
+                                <h3 className="font-black text-slate-800 uppercase tracking-tight text-sm mb-2">Data Siswa</h3>
+                                <p className="text-xs text-slate-400 font-medium leading-relaxed mb-4">Informasi lengkap profil dan riwayat kelas seluruh siswa aktif.</p>
                                 <div className="text-emerald-600 text-xs font-bold flex items-center gap-1 group-hover:gap-2 transition-all">
-                                    Lihat Detail Laporan <ChevronRight size={14} />
+                                    Lihat Data Siswa <ChevronRight size={14} />
                                 </div>
                             </div>
 
                             <div 
-                                onClick={() => navigate('/kepala_sekolah/lomba')}
+                                onClick={() => navigate('/kepala_sekolah/laporan-absensi')}
                                 className="p-6 bg-slate-50 rounded-3xl border border-slate-100 hover:border-emerald-200 hover:bg-white hover:shadow-xl transition-all group cursor-pointer"
                             >
-                                <h3 className="font-black text-slate-800 uppercase tracking-tight text-sm mb-2">Prestasi & Lomba</h3>
-                                <p className="text-xs text-slate-400 font-medium leading-relaxed mb-4">Daftar pencapaian dan keikutsertaan siswa dalam perlombaan.</p>
+                                <h3 className="font-black text-slate-800 uppercase tracking-tight text-sm mb-2">Laporan Absensi</h3>
+                                <p className="text-xs text-slate-400 font-medium leading-relaxed mb-4">Rekapitulasi resmi kehadiran siswa per ekstrakurikuler dan kelas.</p>
                                 <div className="text-emerald-600 text-xs font-bold flex items-center gap-1 group-hover:gap-2 transition-all">
-                                    Lihat Detail Laporan <ChevronRight size={14} />
+                                    Lihat Laporan Absensi <ChevronRight size={14} />
                                 </div>
                             </div>
 
                             <div 
-                                onClick={() => navigate('/kepala_sekolah/pelatih')}
+                                onClick={() => navigate('/kepala_sekolah/laporan-nilai')}
                                 className="p-6 bg-slate-50 rounded-3xl border border-slate-100 hover:border-emerald-200 hover:bg-white hover:shadow-xl transition-all group cursor-pointer"
                             >
-                                <h3 className="font-black text-slate-800 uppercase tracking-tight text-sm mb-2">Daftar Pelatih</h3>
-                                <p className="text-xs text-slate-400 font-medium leading-relaxed mb-4">Informasi lengkap pelatih ekstrakurikuler internal dan eksternal.</p>
+                                <h3 className="font-black text-slate-800 uppercase tracking-tight text-sm mb-2">Laporan Nilai</h3>
+                                <p className="text-xs text-slate-400 font-medium leading-relaxed mb-4">Dokumen rekap nilai akhir rapor ekstrakurikuler siswa.</p>
                                 <div className="text-emerald-600 text-xs font-bold flex items-center gap-1 group-hover:gap-2 transition-all">
-                                    Lihat Daftar Pelatih <ChevronRight size={14} />
+                                    Lihat Laporan Nilai <ChevronRight size={14} />
                                 </div>
                             </div>
                         </div>

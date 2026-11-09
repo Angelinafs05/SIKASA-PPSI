@@ -367,10 +367,23 @@ class DashboardController
         ]);
         $todaySchedule = $stmt_s->fetchAll();
 
+        // My Pending Ekskuls (Menunggu approval)
+        $stmtPending = $db->prepare("
+            SELECT pe.id AS reg_id, e.id AS ekskul_id, e.nama_ekskul, e.hari, e.jam, e.tempat, p.nama_pelatih, pe.status
+            FROM pendaftaran_ekskul pe
+            JOIN ekstrakurikuler e ON pe.ekskul_id = e.id
+            LEFT JOIN pelatih p ON p.ekskul_id = e.id
+            WHERE pe.siswa_id = :sid AND pe.status = 'pending' AND pe.tahun_ajaran = :t AND pe.semester = :s
+            ORDER BY pe.tanggal_daftar DESC
+        ");
+        $stmtPending->execute([':sid' => $sid, ':t' => $t, ':s' => $s]);
+        $pendingEkskuls = $stmtPending->fetchAll();
+
         successResponse([
             'total_ekskul'  => (int) $totalEkskul,
             'pending_count' => (int) $pendingCount,
             'my_ekskuls'    => $myEkskuls,
+            'pending_ekskuls' => $pendingEkskuls,
             'today_schedule' => $todaySchedule,
             'today_name'    => $today,
             'periode'       => $period

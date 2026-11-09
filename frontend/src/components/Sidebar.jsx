@@ -50,7 +50,7 @@ const Sidebar = ({ isOpen, setIsOpen }) => {
                     // Monitoring
                     { path: '/admin/monitoring', icon: <Monitor size={20} />, label: 'Monitoring' },
                     // Laporan
-                    { path: '/admin/rekap-absensi?tab=laporan', icon: <FileText size={20} />, label: 'Laporan Absensi' },
+                    { path: '/admin/laporan-absensi', icon: <FileText size={20} />, label: 'Laporan Absensi' },
                     { path: '/admin/laporan-nilai', icon: <FileText size={20} />, label: 'Laporan Nilai' },
                 ];
             case 'pelatih':
@@ -72,8 +72,6 @@ const Sidebar = ({ isOpen, setIsOpen }) => {
             case 'pendamping':
                 return [
                     { path: '/pendamping', icon: <LayoutDashboard size={20} />, label: 'Dashboard' },
-                    // Ekstrakurikuler & Siswa
-                    { path: '/pendamping/ekskul', icon: <Activity size={20} />, label: 'Ekskul Didampingi' },
                     // Absensi
                     { path: '/pendamping/absensi', icon: <ChevronRight size={20} />, label: 'Input / Lihat Absensi' },
                     { path: '/pendamping/rekap-absensi', icon: <FileText size={20} />, label: 'Rekap Absensi' },

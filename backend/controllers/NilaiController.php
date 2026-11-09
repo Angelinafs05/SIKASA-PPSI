@@ -432,8 +432,16 @@ class NilaiController {
         ];
 
         if ($ekskulId) {
-            $sql .= " AND pe.ekskul_id = :eid";
-            $params[':eid'] = $ekskulId;
+            if (is_numeric($ekskulId)) {
+                $sql .= " AND pe.ekskul_id IN (
+                    SELECT id FROM ekstrakurikuler 
+                    WHERE nama_ekskul = (SELECT nama_ekskul FROM ekstrakurikuler WHERE id = :eid LIMIT 1)
+                )";
+                $params[':eid'] = $ekskulId;
+            } else {
+                $sql .= " AND e.nama_ekskul = :enama";
+                $params[':enama'] = $ekskulId;
+            }
         }
 
         $sql .= " ORDER BY e.nama_ekskul ASC, k.nama_kelas ASC, s.nama_siswa ASC";
