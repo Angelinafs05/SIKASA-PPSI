@@ -12,6 +12,7 @@ const PelatihNilai = () => {
     const [daftarPertemuan, setDaftarPertemuan] = useState([]);
     const [pertemuanStudents, setPertemuanStudents] = useState([]);
     const [isPertemuanSaved, setIsPertemuanSaved] = useState(false);
+    const [isEditingPertemuan, setIsEditingPertemuan] = useState(false);
     const [loadingPertemuan, setLoadingPertemuan] = useState(true);
     const [savingPertemuan, setSavingPertemuan] = useState(false);
 
@@ -49,6 +50,7 @@ const PelatihNilai = () => {
                 setMateri(materi || '');
                 setDaftarPertemuan(daftar_pertemuan || []);
                 setIsPertemuanSaved(!!sudah_tersimpan);
+                setIsEditingPertemuan(!sudah_tersimpan); // Jika belum pernah disimpan, langsung mode edit/aktif
                 setPertemuanStudents(siswa.map(s => ({
                     ...s,
                     nilai_pertemuan: s.nilai_pertemuan !== null && s.nilai_pertemuan !== undefined ? s.nilai_pertemuan : (s.status_absensi === 'Hadir' ? 80 : 0),
@@ -121,7 +123,8 @@ const PelatihNilai = () => {
             const response = await api.post('/api/pelatih/nilai/pertemuan', payload);
             if (response.data.success) {
                 setIsPertemuanSaved(true);
-                setSuccess('Nilai pertemuan dan materi berhasil disimpan! Nilai rapor otomatis disinkronkan.');
+                setIsEditingPertemuan(false);
+                setSuccess('Nilai pertemuan dan materi berhasil diperbarui! Nilai rapor otomatis disinkronkan.');
                 window.scrollTo({ top: 0, behavior: 'smooth' });
                 setTimeout(() => setSuccess(''), 5000);
             } else {
@@ -246,8 +249,13 @@ const PelatihNilai = () => {
                                 type="text"
                                 value={materi}
                                 onChange={(e) => setMateri(e.target.value)}
+                                disabled={isPertemuanSaved && !isEditingPertemuan}
                                 placeholder="Contoh: Pengenalan Dribbling & Pola Penyerangan..."
-                                className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl font-bold text-slate-800 focus:bg-white focus:outline-none focus:ring-4 focus:ring-blue-50 focus:border-[#000080]"
+                                className={`w-full px-4 py-3 rounded-xl font-bold transition-all ${
+                                    isPertemuanSaved && !isEditingPertemuan
+                                        ? 'bg-slate-100 border border-slate-200 text-slate-600 cursor-not-allowed'
+                                        : 'bg-slate-50 border border-slate-200 text-slate-800 focus:bg-white focus:outline-none focus:ring-4 focus:ring-blue-50 focus:border-[#000080]'
+                                }`}
                             />
                             <p className="text-[11px] text-slate-400">
                                 Materi ini disinkronkan otomatis dari absensi harian pelatih.
@@ -317,7 +325,12 @@ const PelatihNilai = () => {
                                                         max="100"
                                                         value={siswa.nilai_pertemuan}
                                                         onChange={(e) => handlePertemuanNilaiChange(siswa.id, e.target.value)}
-                                                        className="w-24 px-3 py-2 text-center font-black text-lg bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:outline-none focus:ring-4 focus:ring-blue-50 focus:border-[#000080]"
+                                                        disabled={isPertemuanSaved && !isEditingPertemuan}
+                                                        className={`w-24 px-3 py-2 text-center font-black text-lg rounded-xl transition-all ${
+                                                            isPertemuanSaved && !isEditingPertemuan
+                                                                ? 'bg-slate-100 border border-slate-200 text-slate-600 cursor-not-allowed'
+                                                                : 'bg-slate-50 border border-slate-200 text-slate-800 focus:bg-white focus:outline-none focus:ring-4 focus:ring-blue-50 focus:border-[#000080]'
+                                                        }`}
                                                     />
                                                 </td>
                                                 <td className="px-6 py-4 text-center font-bold text-slate-600">
@@ -328,8 +341,13 @@ const PelatihNilai = () => {
                                                         type="text"
                                                         value={siswa.catatan_nilai}
                                                         onChange={(e) => handlePertemuanCatatanChange(siswa.id, e.target.value)}
+                                                        disabled={isPertemuanSaved && !isEditingPertemuan}
                                                         placeholder="Catatan keaktifan/teknik..."
-                                                        className="w-full px-3 py-2 text-xs font-medium bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:outline-none focus:ring-2 focus:ring-[#000080]/20 focus:border-[#000080]"
+                                                        className={`w-full px-3 py-2 text-xs font-medium rounded-xl transition-all ${
+                                                            isPertemuanSaved && !isEditingPertemuan
+                                                                ? 'bg-slate-100 border border-slate-200 text-slate-500 cursor-not-allowed'
+                                                                : 'bg-slate-50 border border-slate-200 text-slate-700 focus:bg-white focus:outline-none focus:ring-2 focus:ring-[#000080]/20 focus:border-[#000080]'
+                                                        }`}
                                                     />
                                                 </td>
                                             </tr>
@@ -347,30 +365,44 @@ const PelatihNilai = () => {
                         </div>
                     )}
 
-                    {/* SAVE BUTTON PERTEMUAN */}
+                    {/* SAVE / EDIT BUTTON PERTEMUAN */}
                     {filteredPertemuan.length > 0 && (
                         <div className="flex justify-end pt-4">
-                            <button
-                                onClick={handleSavePertemuan}
-                                disabled={savingPertemuan || loadingPertemuan}
-                                className={`flex items-center gap-3 px-8 py-4 rounded-[2rem] font-black text-sm shadow-xl hover:-translate-y-1 active:scale-95 transition-all disabled:opacity-50 text-white ${
-                                    isPertemuanSaved
-                                        ? 'bg-amber-600 hover:bg-amber-700 shadow-amber-900/30'
-                                        : 'bg-[#000080] hover:bg-blue-900 shadow-blue-900/30'
-                                }`}
-                            >
-                                {savingPertemuan ? 'Menyimpan...' : isPertemuanSaved ? (
-                                    <>
-                                        <ClipboardEdit size={18} />
-                                        Edit / Update Nilai Pertemuan Ini
-                                    </>
-                                ) : (
-                                    <>
-                                        <Save size={18} />
-                                        Simpan Nilai Pertemuan Ini
-                                    </>
-                                )}
-                            </button>
+                            {isPertemuanSaved && !isEditingPertemuan ? (
+                                <button
+                                    onClick={() => setIsEditingPertemuan(true)}
+                                    className="flex items-center gap-3 px-8 py-4 bg-amber-600 hover:bg-amber-700 text-white rounded-[2rem] font-black text-sm shadow-xl shadow-amber-900/30 hover:-translate-y-1 active:scale-95 transition-all"
+                                >
+                                    <ClipboardEdit size={18} />
+                                    Edit Nilai & Materi Pertemuan Ini
+                                </button>
+                            ) : (
+                                <div className="flex items-center gap-3">
+                                    {isPertemuanSaved && isEditingPertemuan && (
+                                        <button
+                                            onClick={() => {
+                                                setIsEditingPertemuan(false);
+                                                fetchPertemuanData(tanggal); // batalkan edit & reload data asli
+                                            }}
+                                            className="px-6 py-4 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-[2rem] font-bold text-sm transition-all"
+                                        >
+                                            Batal
+                                        </button>
+                                    )}
+                                    <button
+                                        onClick={handleSavePertemuan}
+                                        disabled={savingPertemuan || loadingPertemuan}
+                                        className="flex items-center gap-3 px-8 py-4 bg-[#000080] hover:bg-blue-900 text-white rounded-[2rem] font-black text-sm shadow-xl shadow-blue-900/30 hover:-translate-y-1 active:scale-95 transition-all disabled:opacity-50"
+                                    >
+                                        {savingPertemuan ? 'Memperbarui...' : (
+                                            <>
+                                                <Save size={18} />
+                                                {isPertemuanSaved ? 'Update Nilai Pertemuan Ini' : 'Simpan Nilai Pertemuan Ini'}
+                                            </>
+                                        )}
+                                    </button>
+                                </div>
+                            )}
                         </div>
                     )}
                 </div>
