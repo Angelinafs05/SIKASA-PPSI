@@ -617,13 +617,26 @@ class NilaiController {
             ':t4' => $period['tahun_ajaran'], ':s4' => $period['semester']
         ]);
 
+        $siswaList = $stmt_siswa->fetchAll(PDO::FETCH_ASSOC);
+        $sudahTersimpan = false;
+        foreach ($siswaList as $sw) {
+            if ($sw['nilai_pertemuan'] !== null && $sw['nilai_pertemuan'] !== '') {
+                $sudahTersimpan = true;
+                break;
+            }
+        }
+        if (!$sudahTersimpan && !empty($jurnal['materi'])) {
+            $sudahTersimpan = true;
+        }
+
         successResponse([
             'tanggal' => $tanggal,
             'ekskul_id' => $ekskulId,
             'materi'  => $jurnal['materi'] ?? '',
             'catatan' => $jurnal['catatan'] ?? '',
+            'sudah_tersimpan' => $sudahTersimpan,
             'daftar_pertemuan' => $listDates,
-            'siswa'   => $stmt_siswa->fetchAll(PDO::FETCH_ASSOC)
+            'siswa'   => $siswaList
         ]);
     }
 

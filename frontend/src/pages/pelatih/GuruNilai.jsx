@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Trophy, Save, Search, Activity, Calendar, User, CheckCircle, Calculator, BookOpen, AlertCircle } from 'lucide-react';
+import { Trophy, Save, Search, Activity, Calendar, User, ClipboardEdit, CheckCircle, Calculator, BookOpen, AlertCircle } from 'lucide-react';
 import api from '../../api/api';
 
 const GuruNilai = () => {
@@ -14,6 +14,7 @@ const GuruNilai = () => {
     const [materi, setMateri] = useState('');
     const [daftarPertemuan, setDaftarPertemuan] = useState([]);
     const [pertemuanStudents, setPertemuanStudents] = useState([]);
+    const [isPertemuanSaved, setIsPertemuanSaved] = useState(false);
     const [loadingPertemuan, setLoadingPertemuan] = useState(true);
     const [savingPertemuan, setSavingPertemuan] = useState(false);
 
@@ -67,9 +68,10 @@ const GuruNilai = () => {
             setError('');
             const response = await api.get(`/api/pendamping/nilai/pertemuan?ekskul_id=${ekskulId}&tanggal=${selectedDate}`);
             if (response.data.success) {
-                const { materi, daftar_pertemuan, siswa } = response.data.data;
+                const { materi, daftar_pertemuan, siswa, sudah_tersimpan } = response.data.data;
                 setMateri(materi || '');
                 setDaftarPertemuan(daftar_pertemuan || []);
+                setIsPertemuanSaved(!!sudah_tersimpan);
                 setPertemuanStudents(siswa.map(s => ({
                     ...s,
                     nilai_pertemuan: s.nilai_pertemuan !== null && s.nilai_pertemuan !== undefined ? s.nilai_pertemuan : (s.status_absensi === 'Hadir' ? 80 : 0),
@@ -141,6 +143,7 @@ const GuruNilai = () => {
 
             const response = await api.post('/api/pendamping/nilai/pertemuan', payload);
             if (response.data.success) {
+                setIsPertemuanSaved(true);
                 setSuccess('Nilai pertemuan dan materi berhasil disimpan! Nilai rapor otomatis disinkronkan.');
                 window.scrollTo({ top: 0, behavior: 'smooth' });
                 setTimeout(() => setSuccess(''), 5000);
@@ -376,9 +379,18 @@ const GuruNilai = () => {
                             <button
                                 onClick={handleSavePertemuan}
                                 disabled={savingPertemuan || loadingPertemuan}
-                                className="flex items-center gap-3 px-8 py-4 bg-[#000080] hover:bg-blue-900 text-white rounded-[2rem] font-black text-sm shadow-xl shadow-blue-900/30 hover:-translate-y-1 active:scale-95 transition-all disabled:opacity-50"
+                                className={`flex items-center gap-3 px-8 py-4 rounded-[2rem] font-black text-sm shadow-xl hover:-translate-y-1 active:scale-95 transition-all disabled:opacity-50 text-white ${
+                                    isPertemuanSaved
+                                        ? 'bg-amber-600 hover:bg-amber-700 shadow-amber-900/30'
+                                        : 'bg-[#000080] hover:bg-blue-900 shadow-blue-900/30'
+                                }`}
                             >
-                                {savingPertemuan ? 'Menyimpan...' : (
+                                {savingPertemuan ? 'Menyimpan...' : isPertemuanSaved ? (
+                                    <>
+                                        <ClipboardEdit size={18} />
+                                        Edit / Update Nilai Pertemuan Ini
+                                    </>
+                                ) : (
                                     <>
                                         <Save size={18} />
                                         Simpan Nilai Pertemuan Ini
