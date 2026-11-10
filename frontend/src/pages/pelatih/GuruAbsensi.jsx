@@ -134,25 +134,13 @@ const GuruAbsensi = () => {
                 </div>
 
                 <div className="flex flex-col md:flex-row gap-4 w-full md:w-auto">
-                    {/* EKSKUL FILTER */}
-                    <div className="relative">
-                        <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
-                            <Trophy className="h-5 w-5 text-slate-400" />
+                    {/* INFO EKSKUL (Hanya tampil jika ada ekskul) */}
+                    {ekskuls.length > 0 && (
+                        <div className="px-4 py-3 bg-indigo-50 border border-indigo-200 rounded-2xl flex items-center gap-2.5 text-indigo-900 font-bold text-sm shadow-sm">
+                            <Trophy className="h-5 w-5 text-indigo-600" />
+                            <span>{ekskuls.find(e => String(e.id) === String(selectedEkskul))?.nama_ekskul || ekskuls[0]?.nama_ekskul}</span>
                         </div>
-                        <select
-                            value={selectedEkskul}
-                            onChange={(e) => setSelectedEkskul(e.target.value)}
-                            className="block w-full pl-11 pr-10 py-3 bg-white border border-slate-200 rounded-2xl leading-5 focus:outline-none focus:ring-4 focus:ring-indigo-50 focus:border-indigo-500 transition-all duration-200 font-medium text-slate-700 shadow-sm appearance-none"
-                        >
-                            <option value="" disabled>Pilih Ekskul...</option>
-                            {ekskuls.map(e => (
-                                <option key={e.id} value={e.id}>{e.nama_ekskul}</option>
-                            ))}
-                        </select>
-                        <div className="absolute inset-y-0 right-0 pr-4 flex items-center pointer-events-none text-slate-400">
-                            <svg className="h-4 w-4 fill-current" viewBox="0 0 20 20"><path d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clipRule="evenodd" fillRule="evenodd"></path></svg>
-                        </div>
-                    </div>
+                    )}
 
                     {/* TANGGAL FILTER */}
                     <div className="relative">

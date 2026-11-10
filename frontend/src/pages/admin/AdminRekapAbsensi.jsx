@@ -1,9 +1,13 @@
 
 import React, { useState, useEffect } from 'react';
-import { Search, Users, Activity, CheckCircle, Clock, AlertCircle, FileText, Download, BarChart3, TrendingUp, AlertTriangle } from 'lucide-react';
+import { Search, Users, Activity, CheckCircle, Clock, AlertCircle, FileText, Download, BarChart3, TrendingUp, AlertTriangle, Trophy } from 'lucide-react';
 import api from '../../api/api';
+import { useAuth } from '../../context/AuthContext';
 
 const AdminRekapAbsensi = () => {
+    const { user } = useAuth();
+    const isPendamping = user?.role === 'pendamping';
+
     const [ekskuls, setEkskuls] = useState([]);
     const [selectedEkskul, setSelectedEkskul] = useState('');
     const [rekapList, setRekapList] = useState([]);
@@ -178,19 +182,29 @@ const AdminRekapAbsensi = () => {
 
             {/* FILTER & PENCARIAN */}
             <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm flex flex-col md:flex-row items-center justify-between gap-4">
-                <div className="w-full md:w-80">
-                    <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-1.5">Filter Ekstrakurikuler</label>
-                    <select
-                        value={selectedEkskul}
-                        onChange={(e) => setSelectedEkskul(e.target.value)}
-                        className="w-full bg-slate-50 border border-slate-300 rounded-xl px-3.5 py-2.5 text-sm font-medium text-slate-700 focus:outline-none focus:ring-2 focus:ring-[#000080]"
-                    >
-                        <option value="">Semua Ekstrakurikuler</option>
-                        {ekskuls.map(e => (
-                            <option key={e.id} value={e.id}>{e.nama_ekskul}</option>
-                        ))}
-                    </select>
-                </div>
+                {!isPendamping ? (
+                    <div className="w-full md:w-80">
+                        <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-1.5">Filter Ekstrakurikuler</label>
+                        <select
+                            value={selectedEkskul}
+                            onChange={(e) => setSelectedEkskul(e.target.value)}
+                            className="w-full bg-slate-50 border border-slate-300 rounded-xl px-3.5 py-2.5 text-sm font-medium text-slate-700 focus:outline-none focus:ring-2 focus:ring-[#000080]"
+                        >
+                            <option value="">Semua Ekstrakurikuler</option>
+                            {ekskuls.map(e => (
+                                <option key={e.id} value={e.id}>{e.nama_ekskul}</option>
+                            ))}
+                        </select>
+                    </div>
+                ) : (
+                    <div className="w-full md:w-auto">
+                        <span className="text-xs font-bold text-slate-400 uppercase tracking-wider block mb-1">Ekskul Didampingi</span>
+                        <div className="px-4 py-2.5 bg-blue-50 text-[#000080] border border-blue-200 rounded-xl font-bold text-sm flex items-center gap-2">
+                            <Trophy size={16} />
+                            {ekskuls.map(e => e.nama_ekskul).join(', ') || 'Ekstrakurikuler Pendampingan'}
+                        </div>
+                    </div>
+                )}
 
                 <div className="w-full md:w-96">
                     <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-1.5">Pencarian Siswa</label>

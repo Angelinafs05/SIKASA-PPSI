@@ -235,16 +235,11 @@ const GuruNilai = () => {
             {/* BAR FILTER EKSKUL, TANGGAL & MATERI */}
             <div className="bg-white rounded-3xl border border-slate-200 shadow-sm p-6 grid grid-cols-1 md:grid-cols-4 gap-4">
                 <div className="space-y-2">
-                    <label className="text-xs font-bold text-slate-500 uppercase tracking-wider">Pilih Ekstrakurikuler</label>
-                    <select
-                        value={selectedEkskul}
-                        onChange={(e) => setSelectedEkskul(e.target.value)}
-                        className="w-full bg-slate-50 border border-slate-200 text-slate-800 font-bold rounded-xl px-4 py-3 focus:ring-2 focus:ring-[#000080]/20 focus:border-[#000080] outline-none"
-                    >
-                        {ekskuls.map(e => (
-                            <option key={e.id} value={e.id}>{e.nama_ekskul}</option>
-                        ))}
-                    </select>
+                    <label className="text-xs font-bold text-slate-500 uppercase tracking-wider">Ekskul Didampingi</label>
+                    <div className="w-full bg-blue-50 border border-blue-200 text-[#000080] font-bold rounded-xl px-4 py-3 flex items-center gap-2">
+                        <Trophy size={16} className="text-[#000080]" />
+                        <span>{ekskuls.find(e => String(e.id) === String(selectedEkskul))?.nama_ekskul || (ekskuls.length > 0 ? ekskuls[0].nama_ekskul : '-')}</span>
+                    </div>
                 </div>
 
                 {mode === 'pertemuan' && (
