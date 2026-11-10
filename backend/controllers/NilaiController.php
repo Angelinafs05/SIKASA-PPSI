@@ -36,7 +36,7 @@ class NilaiController {
 
         // Data siswa + nilai akhir
         $stmt2 = $db->prepare("
-            SELECT s.id, s.nama_siswa, k.nama_kelas,
+            SELECT s.id, s.no_induk, s.nama_siswa, k.nama_kelas,
                    n.nilai, n.keterangan,
                    (SELECT COUNT(*) FROM absensi a WHERE a.id_siswa = s.id AND a.id_pelatih IN (SELECT p_sub.id FROM pelatih p_sub JOIN ekstrakurikuler e_sub ON p_sub.ekskul_id = e_sub.id WHERE e_sub.nama_ekskul = (SELECT nama_ekskul FROM ekstrakurikuler WHERE id = :eid3)) AND a.status = 'Alfa' AND a.tahun_ajaran = :t3 AND a.semester = :s3) as alfa_count
             FROM pendaftaran_ekskul pe
@@ -124,7 +124,7 @@ class NilaiController {
 
         // Data siswa + nilai
         $stmt2 = $db->prepare("
-            SELECT s.id, s.nama_siswa, k.nama_kelas,
+            SELECT s.id, s.no_induk, s.nama_siswa, k.nama_kelas,
                    n.nilai, n.keterangan,
                    (SELECT COUNT(*) FROM absensi a WHERE a.id_siswa = s.id AND a.id_pelatih IN (SELECT p_sub.id FROM pelatih p_sub JOIN ekstrakurikuler e_sub ON p_sub.ekskul_id = e_sub.id WHERE e_sub.nama_ekskul = (SELECT nama_ekskul FROM ekstrakurikuler WHERE id = :eid3)) AND a.status = 'Alfa' AND a.tahun_ajaran = :t3 AND a.semester = :s3) as alfa_count
             FROM pendaftaran_ekskul pe
