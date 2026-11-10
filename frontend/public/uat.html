@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>UAT SIKASA - SMPK Santa Maria 2 Malang</title>
+    <title>Instrumen UAT SIKASA - SMPK Santa Maria 2 Malang</title>
     <!-- Tailwind CSS CDN -->
     <script src="https://cdn.tailwindcss.com"></script>
     <script>
@@ -15,7 +15,7 @@
                             navy: '#000080',
                             navyDark: '#000066',
                             navyLight: '#1e3a8a',
-                            accent: '#3b82f6',
+                            accent: '#2563eb',
                         }
                     }
                 }
@@ -27,7 +27,7 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
     <script src="https://unpkg.com/lucide@latest"></script>
-    <!-- jsPDF & html2canvas -->
+    <!-- jsPDF & autoTable CDN -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.31/jspdf.plugin.autotable.min.js"></script>
     <style>
@@ -55,20 +55,16 @@
                 <div>
                     <div class="flex items-center gap-2">
                         <span class="font-black text-brand-navy text-lg tracking-tight">SIKASA</span>
-                        <span class="bg-blue-100 text-brand-navy text-[10px] font-black uppercase px-2 py-0.5 rounded-full border border-blue-200">UAT PORTAL</span>
+                        <span class="bg-blue-100 text-brand-navy text-[10px] font-black uppercase px-2 py-0.5 rounded-full border border-blue-200">UAT FORM</span>
                     </div>
                     <p class="text-xs text-slate-400 font-medium">SMPK Santa Maria 2 Malang</p>
                 </div>
             </div>
 
-            <div class="flex items-center gap-2 sm:gap-3">
-                <button onclick="fillDummyData()" class="px-3.5 py-2 text-xs font-bold rounded-xl bg-amber-50 hover:bg-amber-100 text-amber-700 border border-amber-200 transition-all flex items-center gap-1.5 shadow-sm active:scale-95" title="Isi semua form & jawaban otomatis (Pass)">
-                    <i data-lucide="sparkles" class="w-4 h-4 text-amber-600"></i>
-                    <span class="hidden sm:inline">Isi Otomatis</span> (Auto Fill)
-                </button>
-                <button onclick="resetCurrentForm()" class="px-3.5 py-2 text-xs font-bold rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-600 transition-all flex items-center gap-1.5 active:scale-95">
+            <div class="flex items-center gap-3">
+                <button type="button" onclick="resetCurrentForm()" class="px-3.5 py-2 text-xs font-bold rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-600 transition-all flex items-center gap-1.5 active:scale-95" title="Kosongkan seluruh isian">
                     <i data-lucide="rotate-ccw" class="w-4 h-4"></i>
-                    <span class="hidden sm:inline">Reset</span>
+                    <span>Reset Form</span>
                 </button>
             </div>
         </div>
@@ -80,12 +76,12 @@
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10 relative z-10">
             <div class="max-w-3xl">
                 <div class="inline-flex items-center gap-2 px-3 py-1 bg-white/10 border border-white/20 rounded-full text-xs font-semibold text-blue-200 backdrop-blur-md mb-4">
-                    <i data-lucide="check-circle" class="w-3.5 h-3.5 text-emerald-400"></i>
-                    Instrumen Resmi UAT Sistem Informasi Ekstrakurikuler
+                    <i data-lucide="clipboard-check" class="w-3.5 h-3.5 text-blue-300"></i>
+                    Instrumen Resmi User Acceptance Testing (UAT)
                 </div>
-                <h1 class="text-3xl sm:text-4xl font-extrabold tracking-tight">Formulir Pengujian User Acceptance Testing (UAT)</h1>
+                <h1 class="text-3xl sm:text-4xl font-extrabold tracking-tight">Formulir Pengujian Sistem SIKASA</h1>
                 <p class="mt-3 text-slate-300 text-sm sm:text-base leading-relaxed">
-                    Silakan lengkapi identitas penguji, pilih peran (*role*), dan lakukan pengujian terhadap butir-butir skenario yang telah disesuaikan dengan alur sistem SIKASA.
+                    Silakan isi identitas penguji, pilih peran (*role*), dan berikan penilaian langsung per butir skenario pengujian. Sistem akan mengalkulasi persentase kelulusan dan indeks kepuasan secara otomatis.
                 </p>
             </div>
         </div>
@@ -102,18 +98,18 @@
                 </div>
                 <div>
                     <h2 class="text-lg font-extrabold text-slate-800">1. Identitas Penguji (Tester)</h2>
-                    <p class="text-xs text-slate-400">Data ini akan dicatat pada lembar pengesahan hasil pengujian</p>
+                    <p class="text-xs text-slate-400">Data identitas resmi untuk lembar pengesahan pengujian</p>
                 </div>
             </div>
 
             <div class="grid grid-cols-1 sm:grid-cols-3 gap-5">
                 <div>
                     <label class="block text-xs font-extrabold uppercase tracking-wider text-slate-600 mb-2">
-                        Nama Lengkap <span class="text-rose-500">*</span>
+                        Nama Lengkap Penguji <span class="text-rose-500">*</span>
                     </label>
                     <div class="relative">
                         <i data-lucide="user" class="w-4 h-4 text-slate-400 absolute left-3.5 top-3.5"></i>
-                        <input type="text" id="testerName" placeholder="Contoh: Dra. Maria Angelina" class="w-full pl-10 pr-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm font-semibold text-slate-700 focus:bg-white focus:outline-none focus:ring-2 focus:ring-brand-navy/20 focus:border-brand-navy transition-all">
+                        <input type="text" id="testerName" placeholder="Masukkan nama lengkap..." class="w-full pl-10 pr-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm font-semibold text-slate-700 focus:bg-white focus:outline-none focus:ring-2 focus:ring-brand-navy/20 focus:border-brand-navy transition-all">
                     </div>
                 </div>
 
@@ -123,7 +119,7 @@
                     </label>
                     <div class="relative">
                         <i data-lucide="mail" class="w-4 h-4 text-slate-400 absolute left-3.5 top-3.5"></i>
-                        <input type="email" id="testerEmail" placeholder="Contoh: maria.tester@smpksantamaria2.sch.id" class="w-full pl-10 pr-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm font-semibold text-slate-700 focus:bg-white focus:outline-none focus:ring-2 focus:ring-brand-navy/20 focus:border-brand-navy transition-all">
+                        <input type="email" id="testerEmail" placeholder="contoh@smpksantamaria2.sch.id" class="w-full pl-10 pr-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm font-semibold text-slate-700 focus:bg-white focus:outline-none focus:ring-2 focus:ring-brand-navy/20 focus:border-brand-navy transition-all">
                     </div>
                 </div>
 
@@ -143,14 +139,8 @@
         <section class="space-y-4">
             <div class="flex items-center justify-between">
                 <div>
-                    <h2 class="text-lg font-extrabold text-slate-800 flex items-center gap-2">
-                        <span>2. Pilih Aktor / Role Pengujian</span>
-                    </h2>
-                    <p class="text-xs text-slate-400">Pertanyaan dan skenario pengujian akan otomatis berganti sesuai peran yang dipilih</p>
-                </div>
-                <div id="roleStatsBadge" class="hidden sm:inline-flex items-center gap-1.5 px-3 py-1 bg-emerald-50 text-emerald-700 rounded-full border border-emerald-200 text-xs font-bold">
-                    <i data-lucide="check-check" class="w-3.5 h-3.5"></i>
-                    <span id="roleAnswerCount">0 / 0 Terjawab</span>
+                    <h2 class="text-lg font-extrabold text-slate-800">2. Pilih Aktor / Role Pengujian</h2>
+                    <p class="text-xs text-slate-400">Pertanyaan dan skenario pengujian akan otomatis menyesuaikan peran yang dipilih</p>
                 </div>
             </div>
 
@@ -192,9 +182,9 @@
             </div>
         </section>
 
-        <!-- 3. ROLE DESCRIPTION & SUMMARY -->
-        <section id="roleHeaderCard" class="bg-blue-50/70 border border-blue-200/80 rounded-2xl p-5 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
-            <div class="flex items-start gap-3.5">
+        <!-- 3. ROLE HEADER & METRIK KEPUTUSAN / STATISTIK -->
+        <section class="space-y-4">
+            <div id="roleHeaderCard" class="bg-blue-50/70 border border-blue-200/80 rounded-2xl p-5 flex items-start gap-3.5">
                 <div class="p-2.5 bg-brand-navy text-white rounded-xl mt-0.5">
                     <i id="roleHeaderIcon" data-lucide="shield-check" class="w-5 h-5"></i>
                 </div>
@@ -203,23 +193,90 @@
                     <p id="roleDescription" class="text-xs text-slate-600 mt-0.5">Pengujian mencakup manajemen data master, verifikasi pendaftaran, rekapitulasi, dan laporan resmi.</p>
                 </div>
             </div>
-            <div class="flex items-center gap-2">
-                <button type="button" onclick="quickPassAll()" class="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-bold shadow-sm transition-all active:scale-95 flex items-center gap-1.5">
-                    <i data-lucide="check" class="w-3.5 h-3.5"></i> Set Semua Pass
-                </button>
+
+            <!-- DASHBOARD STATISTIK & PERSENTASE HASIL UJI -->
+            <div class="grid grid-cols-2 sm:grid-cols-4 gap-4">
+                <!-- Status Terjawab -->
+                <div class="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm flex flex-col justify-between">
+                    <div class="flex items-center justify-between text-slate-400 mb-2">
+                        <span class="text-[11px] font-extrabold uppercase tracking-wider">Progres Pengujian</span>
+                        <i data-lucide="list-checks" class="w-4 h-4 text-blue-500"></i>
+                    </div>
+                    <div>
+                        <div class="text-2xl font-black text-slate-800" id="statAnswered">0 / 18</div>
+                        <p class="text-[11px] font-bold text-slate-400 mt-0.5" id="statAnsweredPct">0% Terisi</p>
+                    </div>
+                    <!-- Progress Bar -->
+                    <div class="w-full bg-slate-100 rounded-full h-1.5 mt-3 overflow-hidden">
+                        <div id="progressBar" class="bg-brand-navy h-1.5 rounded-full transition-all duration-300" style="width: 0%"></div>
+                    </div>
+                </div>
+
+                <!-- Persentase Pass -->
+                <div class="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm flex flex-col justify-between">
+                    <div class="flex items-center justify-between text-slate-400 mb-2">
+                        <span class="text-[11px] font-extrabold uppercase tracking-wider text-emerald-600">Lulus (Pass)</span>
+                        <i data-lucide="check-circle-2" class="w-4 h-4 text-emerald-600"></i>
+                    </div>
+                    <div>
+                        <div class="text-2xl font-black text-emerald-600" id="statPassCount">0</div>
+                        <p class="text-[11px] font-extrabold text-emerald-700 mt-0.5" id="statPassPct">0.0% Dari Terjawab</p>
+                    </div>
+                    <div class="w-full bg-slate-100 rounded-full h-1.5 mt-3 overflow-hidden">
+                        <div id="passBar" class="bg-emerald-500 h-1.5 rounded-full transition-all duration-300" style="width: 0%"></div>
+                    </div>
+                </div>
+
+                <!-- Persentase Fail -->
+                <div class="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm flex flex-col justify-between">
+                    <div class="flex items-center justify-between text-slate-400 mb-2">
+                        <span class="text-[11px] font-extrabold uppercase tracking-wider text-rose-600">Gagal (Fail)</span>
+                        <i data-lucide="x-circle" class="w-4 h-4 text-rose-600"></i>
+                    </div>
+                    <div>
+                        <div class="text-2xl font-black text-rose-600" id="statFailCount">0</div>
+                        <p class="text-[11px] font-extrabold text-rose-700 mt-0.5" id="statFailPct">0.0% Dari Terjawab</p>
+                    </div>
+                    <div class="w-full bg-slate-100 rounded-full h-1.5 mt-3 overflow-hidden">
+                        <div id="failBar" class="bg-rose-500 h-1.5 rounded-full transition-all duration-300" style="width: 0%"></div>
+                    </div>
+                </div>
+
+                <!-- Tingkat Kepuasan / Kesiapan -->
+                <div class="bg-gradient-to-br from-brand-navy to-blue-900 text-white p-5 rounded-2xl shadow-sm flex flex-col justify-between">
+                    <div class="flex items-center justify-between text-blue-200 mb-2">
+                        <span class="text-[11px] font-extrabold uppercase tracking-wider">Tingkat Kepuasan</span>
+                        <i data-lucide="award" class="w-4 h-4 text-amber-300"></i>
+                    </div>
+                    <div>
+                        <div class="text-lg font-black text-white" id="statSatisfactionGrade">Belum Diisi</div>
+                        <p class="text-[11px] font-medium text-blue-200 mt-0.5" id="statSatisfactionDesc">Silakan isi butir uji</p>
+                    </div>
+                    <div class="mt-3 text-[10px] text-blue-300 font-semibold uppercase tracking-wider flex items-center gap-1">
+                        <i data-lucide="activity" class="w-3 h-3"></i> Berdasarkan Rasio Pass
+                    </div>
+                </div>
             </div>
         </section>
 
         <!-- 4. PERTANYAAN TABLE -->
         <section class="bg-white rounded-3xl border border-slate-200 shadow-sm overflow-hidden">
+            <div class="p-5 border-b border-slate-100 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 bg-slate-50/50">
+                <div class="flex items-center gap-2">
+                    <i data-lucide="list" class="w-5 h-5 text-brand-navy"></i>
+                    <h3 class="font-extrabold text-slate-800 text-base">Daftar Skenario Pengujian UAT</h3>
+                </div>
+                <span class="text-xs text-slate-400 font-bold">Pilih Pass jika fungsi bekerja sesuai harapan, atau Fail jika bermasalah</span>
+            </div>
+
             <div class="overflow-x-auto">
                 <table class="w-full text-left border-collapse">
                     <thead>
-                        <tr class="bg-slate-100/80 border-b border-slate-200 text-[11px] font-black uppercase tracking-wider text-slate-600">
+                        <tr class="bg-slate-100/90 border-b border-slate-200 text-[11px] font-black uppercase tracking-wider text-slate-600">
                             <th class="py-4 px-4 w-12 text-center">No</th>
-                            <th class="py-4 px-5 w-48">Modul / Fitur</th>
+                            <th class="py-4 px-5 w-44">Modul / Fitur</th>
                             <th class="py-4 px-5">Butir Skenario Pengujian UAT</th>
-                            <th class="py-4 px-5 w-52">Hasil yang Diharapkan</th>
+                            <th class="py-4 px-5 w-56">Hasil yang Diharapkan</th>
                             <th class="py-4 px-5 w-44 text-center">Status Hasil</th>
                             <th class="py-4 px-5 w-56">Catatan / Saran</th>
                         </tr>
@@ -237,20 +294,20 @@
                 <label class="block text-xs font-extrabold uppercase tracking-wider text-slate-600 mb-2">
                     Kesimpulan & Saran Penguji Secara Keseluruhan
                 </label>
-                <textarea id="overallNotes" rows="3" placeholder="Tuliskan catatan umum, rekomendasi perbaikan, atau apresiasi terkait kesiapan sistem SIKASA..." class="w-full p-4 bg-slate-50 border border-slate-200 rounded-2xl text-sm font-medium text-slate-700 focus:bg-white focus:outline-none focus:ring-2 focus:ring-brand-navy/20 focus:border-brand-navy transition-all"></textarea>
+                <textarea id="overallNotes" rows="3" placeholder="Tuliskan catatan umum, rekomendasi perbaikan, atau kesimpulan kelayakan sistem SIKASA..." class="w-full p-4 bg-slate-50 border border-slate-200 rounded-2xl text-sm font-medium text-slate-700 focus:bg-white focus:outline-none focus:ring-2 focus:ring-brand-navy/20 focus:border-brand-navy transition-all"></textarea>
             </div>
 
             <div class="pt-4 border-t border-slate-100 flex flex-col sm:flex-row items-center justify-between gap-4">
-                <div class="text-xs text-slate-500 font-medium">
-                    <span class="font-bold text-slate-700" id="summaryStats">0 Disetujui (Pass) • 0 Belum (Fail)</span>
+                <div class="text-xs text-slate-500 font-medium" id="footerSummary">
+                    0 Butir Terjawab
                 </div>
 
                 <div class="flex items-center gap-3 w-full sm:w-auto">
                     <button type="button" onclick="printDoc()" class="flex-1 sm:flex-none px-5 py-3 rounded-2xl bg-slate-100 hover:bg-slate-200 text-slate-700 font-extrabold text-xs uppercase tracking-wider transition-all flex items-center justify-center gap-2 active:scale-95">
                         <i data-lucide="printer" class="w-4 h-4"></i> Cetak / Print
                     </button>
-                    <button type="button" onclick="exportToPDF()" class="flex-1 sm:flex-none px-6 py-3 rounded-2xl bg-brand-navy hover:bg-brand-navyDark text-white font-extrabold text-xs uppercase tracking-wider shadow-lg shadow-brand-navy/20 transition-all flex items-center justify-center gap-2 active:scale-95">
-                        <i data-lucide="download" class="w-4 h-4"></i> Download PDF Resmi
+                    <button type="button" onclick="exportToFormalPDF()" class="flex-1 sm:flex-none px-6 py-3 rounded-2xl bg-brand-navy hover:bg-brand-navyDark text-white font-extrabold text-xs uppercase tracking-wider shadow-lg shadow-brand-navy/20 transition-all flex items-center justify-center gap-2 active:scale-95">
+                        <i data-lucide="file-text" class="w-4 h-4"></i> Download PDF Dokumen Resmi
                     </button>
                 </div>
             </div>
@@ -270,11 +327,6 @@
                 title: "Administrator (Admin)",
                 icon: "shield-check",
                 desc: "Administrator mengelola master data sekolah, periode akademik, persetujuan pendaftaran, rekapitulasi kehadiran, nilai, serta penerbitan laporan resmi.",
-                dummy: {
-                    name: "Ignatius Wahyu, S.Kom.",
-                    email: "admin.wahyu@smpksantamaria2.sch.id",
-                    notes: "Secara keseluruhan seluruh fitur Administrator berfungsi sangat baik dan stabil. Pengujian CRUD data siswa, ekskul, serta approval dan cetak laporan absensi/nilai berjalan sempurna."
-                },
                 questions: [
                     { id: 1, modul: "Autentikasi", scenario: "Apakah Admin dapat login menggunakan username 'admin' dan password 'admin123' serta diarahkan langsung ke dashboard Admin?", expected: "Login berhasil, token tersimpan, dan dashboard admin terbuka." },
                     { id: 2, modul: "Dashboard", scenario: "Apakah dashboard admin menampilkan statistik ringkasan (Total Siswa, Ekskul, Pelatih, Siswa Aktif, Pendaftaran Tertunda) secara akurat sesuai database?", expected: "Data metrik angka dan grafik sinkron dengan database aktif." },
@@ -300,11 +352,6 @@
                 title: "Kepala Sekolah",
                 icon: "building-2",
                 desc: "Kepala Sekolah berfokus pada pengawasan manajerial, pemantauan agenda kegiatan hari ini, rekapitulasi partisipasi siswa, serta verifikasi laporan resmi.",
-                dummy: {
-                    name: "Sr. M. Elfrida, SPM., S.Psi., M.M.",
-                    email: "kepsek@smpksantamaria2.sch.id",
-                    notes: "Sangat baik. Dashboard eksekutif sangat membantu memantau kegiatan harian dan laporan resmi sudah sesuai standar sekolah tanpa risiko data terubah secara tidak sengaja (read-only aman)."
-                },
                 questions: [
                     { id: 1, modul: "Autentikasi", scenario: "Apakah Kepala Sekolah dapat login dengan akun 'kepalasekolah' / 'kepalasekolah123' dan langsung menuju halaman Dashboard Kepala Sekolah?", expected: "Login berhasil dan tampilan bertema eksekutif/manajerial muncul." },
                     { id: 2, modul: "Indikator KPI Dashboard", scenario: "Apakah ringkasan statistik (Total Siswa, Total Ekskul, Total Pelatih, dan Siswa Aktif) pada dashboard Kepala Sekolah tersaji akurat?", expected: "Metrik sekolah tampil jelas di bagian kartu atas dashboard." },
@@ -327,11 +374,6 @@
                 title: "Pelatih Ekstrakurikuler",
                 icon: "trophy",
                 desc: "Pelatih bertanggung jawab mengelola jadwal latihan, memvalidasi kehadiran siswa binaannya, mengatur bobot penilaian, menginput materi jurnal latihan, dan memberikan evaluasi nilai.",
-                dummy: {
-                    name: "Bayu Anggara, S.Pd.",
-                    email: "bayu.tari@smpksantamaria2.sch.id",
-                    notes: "Formulir absensi dan input jurnal harian sangat mudah digunakan di perangkat laptop maupun HP. Penilaian otomatis mengkalkulasi predikat huruf dengan akurat."
-                },
                 questions: [
                     { id: 1, modul: "Autentikasi Pelatih", scenario: "Apakah Pelatih dapat login menggunakan username pribadinya (misal: 'Bayu', 'tegar', 'Edo') dengan password '123456'?", expected: "Pelatih diarahkan ke Dashboard Pelatih sesuai ekskul binaannya." },
                     { id: 2, modul: "Dashboard Pelatih", scenario: "Apakah dashboard menampilkan informasi ekstrakurikuler yang diampu, jumlah anggota aktif, dan jadwal latihan berikutnya?", expected: "Data binaan pelatih terisolasi dengan benar sesuai hak aksesnya." },
@@ -355,11 +397,6 @@
                 title: "Guru Pendamping",
                 icon: "user-cog",
                 desc: "Guru Pendamping mendampingi pelatih, mengawasi ketertiban siswa, memvalidasi surat izin, dan memonitor keselamatan kegiatan.",
-                dummy: {
-                    name: "Andik Setiawan, S.Pd.",
-                    email: "andik.pendamping@smpksantamaria2.sch.id",
-                    notes: "Penyelarasan hak akses ekskul binaan sangat tepat. Menu rekap absensi dan permohonan izin kini hanya memunculkan siswa dari ekskul yang saya dampingi."
-                },
                 questions: [
                     { id: 1, modul: "Autentikasi Guru", scenario: "Apakah Guru Pendamping dapat login menggunakan username pribadinya (misal: 'andik', 'Yuni', 'lina') dengan password '123456'?", expected: "Login berhasil dan dashboard pendamping terbuka." },
                     { id: 2, modul: "Dashboard Pendamping", scenario: "Apakah Guru Pendamping dapat melihat nama ekstrakurikuler yang didampinginya beserta nama pelatih mitra?", expected: "Informasi ekskul pendampingan tampil tepat." },
@@ -380,11 +417,6 @@
                 title: "Siswa",
                 icon: "graduation-cap",
                 desc: "Siswa bertindak sebagai partisipan yang memilih ekstrakurikuler, memantau jadwal kegiatan, mengajukan surat izin absensi, serta melihat capaian nilai rapor kegiatan.",
-                dummy: {
-                    name: "Carmenita Aurelia (Carmen)",
-                    email: "carmen.siswa@smpksantamaria2.sch.id",
-                    notes: "Fitur pengisian angket pilihan ekskul sangat praktis karena langsung membuat PDF resmi dengan tanda tangan digital orang tua. Batasan 2 ekskul dan tombol batal pendaftaran berjalan sangat baik."
-                },
                 questions: [
                     { id: 1, modul: "Autentikasi Siswa", scenario: "Apakah Siswa dapat login dengan username akunnya (misal: 'carmen', 'Juha', 'Martin') dengan password '123456'?", expected: "Siswa diarahkan ke antarmuka Dashboard Siswa yang ramah pengguna." },
                     { id: 2, modul: "Dashboard Siswa", scenario: "Apakah dashboard siswa menampilkan ucapan selamat datang, nama siswa, kelas, status keanggotaan ekskul, serta pengumuman penting?", expected: "Beranda siswa menyajikan status kegiatan yang sedang diikutinya." },
@@ -418,11 +450,9 @@
 
         // Init page
         document.addEventListener('DOMContentLoaded', () => {
-            // Set default date to today
             const today = new Date().toISOString().split('T')[0];
             document.getElementById('testerDate').value = today;
 
-            // Render current role
             renderQuestions();
             lucide.createIcons();
         });
@@ -431,18 +461,15 @@
         function selectRole(roleKey) {
             currentRole = roleKey;
 
-            // Update Tab UI
             document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
             const activeBtn = document.getElementById(`tab-${roleKey}`);
             if (activeBtn) activeBtn.classList.add('active');
 
-            // Update Header Info
             const roleMeta = UAT_DATA[roleKey];
             document.getElementById('roleTitle').innerText = `Pengujian Role: ${roleMeta.title}`;
             document.getElementById('roleDescription').innerText = roleMeta.desc;
             document.getElementById('roleHeaderIcon').setAttribute('data-lucide', roleMeta.icon);
 
-            // Re-render table
             renderQuestions();
             lucide.createIcons();
         }
@@ -456,7 +483,10 @@
             const results = testResults[currentRole] || {};
 
             roleData.questions.forEach((q, idx) => {
-                const qResult = results[q.id] || { status: 'pass', note: '' };
+                const qResult = results[q.id] || null;
+                const status = qResult ? qResult.status : '';
+                const note = qResult ? qResult.note : '';
+
                 const tr = document.createElement('tr');
                 tr.className = "hover:bg-slate-50/60 transition-colors";
 
@@ -475,16 +505,16 @@
                     </td>
                     <td class="py-4 px-5 text-center">
                         <div class="inline-flex rounded-xl p-1 bg-slate-100 border border-slate-200 gap-1">
-                            <button type="button" onclick="setAnswer(${q.id}, 'pass')" class="px-2.5 py-1 rounded-lg text-xs font-bold transition-all flex items-center gap-1 ${qResult.status === 'pass' ? 'bg-emerald-600 text-white shadow-sm' : 'text-slate-500 hover:text-slate-800'}">
+                            <button type="button" onclick="setAnswer(${q.id}, 'pass')" class="px-3 py-1.5 rounded-lg text-xs font-bold transition-all flex items-center gap-1 ${status === 'pass' ? 'bg-emerald-600 text-white shadow-sm ring-1 ring-emerald-700' : 'text-slate-500 hover:text-slate-800 hover:bg-white'}">
                                 <i data-lucide="check" class="w-3.5 h-3.5"></i> Pass
                             </button>
-                            <button type="button" onclick="setAnswer(${q.id}, 'fail')" class="px-2.5 py-1 rounded-lg text-xs font-bold transition-all flex items-center gap-1 ${qResult.status === 'fail' ? 'bg-rose-600 text-white shadow-sm' : 'text-slate-500 hover:text-slate-800'}">
+                            <button type="button" onclick="setAnswer(${q.id}, 'fail')" class="px-3 py-1.5 rounded-lg text-xs font-bold transition-all flex items-center gap-1 ${status === 'fail' ? 'bg-rose-600 text-white shadow-sm ring-1 ring-rose-700' : 'text-slate-500 hover:text-slate-800 hover:bg-white'}">
                                 <i data-lucide="x" class="w-3.5 h-3.5"></i> Fail
                             </button>
                         </div>
                     </td>
                     <td class="py-4 px-5">
-                        <input type="text" value="${qResult.note || ''}" onchange="setNote(${q.id}, this.value)" placeholder="Catatan hasil uji..." class="w-full px-3 py-1.5 text-xs bg-slate-50 border border-slate-200 rounded-lg text-slate-700 focus:bg-white focus:outline-none focus:ring-1 focus:ring-brand-navy">
+                        <input type="text" value="${note || ''}" onchange="setNote(${q.id}, this.value)" placeholder="Tulis catatan jika ada..." class="w-full px-3 py-1.5 text-xs bg-slate-50 border border-slate-200 rounded-lg text-slate-700 focus:bg-white focus:outline-none focus:ring-1 focus:ring-brand-navy">
                     </td>
                 `;
                 tbody.appendChild(tr);
@@ -496,7 +526,7 @@
         // Set Pass / Fail
         function setAnswer(qid, status) {
             if (!testResults[currentRole]) testResults[currentRole] = {};
-            if (!testResults[currentRole][qid]) testResults[currentRole][qid] = { status: 'pass', note: '' };
+            if (!testResults[currentRole][qid]) testResults[currentRole][qid] = { status: '', note: '' };
             testResults[currentRole][qid].status = status;
             renderQuestions();
             lucide.createIcons();
@@ -505,34 +535,8 @@
         // Set Note
         function setNote(qid, noteVal) {
             if (!testResults[currentRole]) testResults[currentRole] = {};
-            if (!testResults[currentRole][qid]) testResults[currentRole][qid] = { status: 'pass', note: '' };
+            if (!testResults[currentRole][qid]) testResults[currentRole][qid] = { status: '', note: '' };
             testResults[currentRole][qid].note = noteVal;
-        }
-
-        // Quick Pass All for current role
-        function quickPassAll() {
-            const roleData = UAT_DATA[currentRole];
-            if (!testResults[currentRole]) testResults[currentRole] = {};
-            roleData.questions.forEach(q => {
-                testResults[currentRole][q.id] = {
-                    status: 'pass',
-                    note: 'Semua fungsi berjalan sesuai spesifikasi dan lulus pengujian.'
-                };
-            });
-            renderQuestions();
-            lucide.createIcons();
-        }
-
-        // Fill Dummy Data (Auto Fill)
-        function fillDummyData() {
-            const roleMeta = UAT_DATA[currentRole];
-            document.getElementById('testerName').value = roleMeta.dummy.name;
-            document.getElementById('testerEmail').value = roleMeta.dummy.email;
-            document.getElementById('testerDate').value = new Date().toISOString().split('T')[0];
-            document.getElementById('overallNotes').value = roleMeta.dummy.notes;
-
-            quickPassAll();
-            alert(`Data pengujian untuk role [${roleMeta.title}] berhasil diisi secara otomatis!`);
         }
 
         // Reset current form
@@ -547,175 +551,263 @@
             }
         }
 
-        // Update statistics counters
+        // Update Statistics, Percentages & Satisfaction Grade
         function updateStats() {
             const roleData = UAT_DATA[currentRole];
+            const totalQuestions = roleData.questions.length;
             const results = testResults[currentRole] || {};
+
             let passCount = 0;
             let failCount = 0;
             let answeredCount = 0;
 
             roleData.questions.forEach(q => {
-                if (results[q.id]) {
+                if (results[q.id] && results[q.id].status) {
                     answeredCount++;
                     if (results[q.id].status === 'pass') passCount++;
                     if (results[q.id].status === 'fail') failCount++;
                 }
             });
 
-            document.getElementById('roleAnswerCount').innerText = `${answeredCount} / ${roleData.questions.length} Terjawab`;
-            document.getElementById('summaryStats').innerText = `${passCount} Lulus (Pass) • ${failCount} Belum (Fail) • Total ${roleData.questions.length} Butir Pengujian`;
+            // Percentages
+            const answeredPct = Math.round((answeredCount / totalQuestions) * 100);
+            const passPct = answeredCount > 0 ? ((passCount / answeredCount) * 100).toFixed(1) : "0.0";
+            const failPct = answeredCount > 0 ? ((failCount / answeredCount) * 100).toFixed(1) : "0.0";
+
+            // Update UI Counters
+            document.getElementById('statAnswered').innerText = `${answeredCount} / ${totalQuestions}`;
+            document.getElementById('statAnsweredPct').innerText = `${answeredPct}% Selesai`;
+            document.getElementById('progressBar').style.width = `${answeredPct}%`;
+
+            document.getElementById('statPassCount').innerText = passCount;
+            document.getElementById('statPassPct').innerText = `${passPct}% Dari Terjawab`;
+            document.getElementById('passBar').style.width = `${answeredCount > 0 ? (passCount / answeredCount) * 100 : 0}%`;
+
+            document.getElementById('statFailCount').innerText = failCount;
+            document.getElementById('statFailPct').innerText = `${failPct}% Dari Terjawab`;
+            document.getElementById('failBar').style.width = `${answeredCount > 0 ? (failCount / answeredCount) * 100 : 0}%`;
+
+            // Calculate Satisfaction Grade
+            let grade = 'Belum Diisi';
+            let desc = 'Silakan isi butir uji';
+
+            if (answeredCount > 0) {
+                const score = parseFloat(passPct);
+                if (score >= 90) {
+                    grade = 'Sangat Memuaskan';
+                    desc = `Skor ${score}% (Sistem Sangat Siap)`;
+                } else if (score >= 75) {
+                    grade = 'Memuaskan (Baik)';
+                    desc = `Skor ${score}% (Siap Digunakan)`;
+                } else if (score >= 50) {
+                    grade = 'Cukup Memuaskan';
+                    desc = `Skor ${score}% (Perlu Perbaikan Kecil)`;
+                } else {
+                    grade = 'Kurang Memuaskan';
+                    desc = `Skor ${score}% (Perlu Revisi Mayor)`;
+                }
+            }
+
+            document.getElementById('statSatisfactionGrade').innerText = grade;
+            document.getElementById('statSatisfactionDesc').innerText = desc;
+
+            document.getElementById('footerSummary').innerText = `${answeredCount} dari ${totalQuestions} Butir Selesai Diuji • Tingkat Kelulusan: ${passPct}% (${grade})`;
         }
 
-        // Native Print
+        // Print Document
         function printDoc() {
             window.print();
         }
 
-        // Export To PDF using jsPDF + autoTable
-        function exportToPDF() {
+        // Export To Formal PDF Document (Layout Khas Dokumen/Laporan Resmi Sekolah)
+        function exportToFormalPDF() {
             const { jsPDF } = window.jspdf;
             const doc = new jsPDF('p', 'mm', 'a4');
             const roleMeta = UAT_DATA[currentRole];
+            const results = testResults[currentRole] || {};
 
             const name = document.getElementById('testerName').value.trim() || '...........................................';
             const email = document.getElementById('testerEmail').value.trim() || '-';
             const dateStr = document.getElementById('testerDate').value || new Date().toISOString().split('T')[0];
             const notes = document.getElementById('overallNotes').value.trim() || 'Tidak ada catatan tambahan.';
 
-            // Kop Surat
-            doc.setFont('helvetica', 'bold');
-            doc.setFontSize(13);
-            doc.setTextColor(0, 0, 128);
-            doc.text('PERKUMPULAN DHARMAPUTRI', 105, 15, { align: 'center' });
-            doc.setFontSize(14);
-            doc.setTextColor(20, 20, 20);
-            doc.text('SMP KATOLIK SANTA MARIA II MALANG', 105, 21, { align: 'center' });
+            // Perhitungan Statistik
+            const totalQ = roleMeta.questions.length;
+            let passCount = 0;
+            let failCount = 0;
+            let answeredCount = 0;
 
-            doc.setFont('helvetica', 'normal');
+            roleMeta.questions.forEach(q => {
+                if (results[q.id] && results[q.id].status) {
+                    answeredCount++;
+                    if (results[q.id].status === 'pass') passCount++;
+                    if (results[q.id].status === 'fail') failCount++;
+                }
+            });
+
+            const passPct = answeredCount > 0 ? ((passCount / answeredCount) * 100).toFixed(1) : "0.0";
+            const failPct = answeredCount > 0 ? ((failCount / answeredCount) * 100).toFixed(1) : "0.0";
+
+            let satisfaction = 'Belum Dinilai';
+            if (answeredCount > 0) {
+                const score = parseFloat(passPct);
+                if (score >= 90) satisfaction = 'SANGAT MEMUASKAN (SISTEM SANGAT SIAP)';
+                else if (score >= 75) satisfaction = 'MEMUASKAN (SISTEM SIAP DIGUNAKAN)';
+                else if (score >= 50) satisfaction = 'CUKUP (PERLU PERBAIKAN MINOR)';
+                else satisfaction = 'KURANG MEMUASKAN (PERLU REVISI)';
+            }
+
+            // ===== 1. KOP SURAT RESMI (FORMAL HEADER) =====
+            doc.setFont('times', 'bold');
+            doc.setFontSize(11);
+            doc.setTextColor(30, 30, 30);
+            doc.text('PERKUMPULAN DHARMAPUTRI', 105, 14, { align: 'center' });
+
+            doc.setFontSize(13);
+            doc.text('SMP KATOLIK SANTA MARIA II MALANG', 105, 19, { align: 'center' });
+
+            doc.setFont('times', 'normal');
             doc.setFontSize(8.5);
             doc.setTextColor(80, 80, 80);
-            doc.text('Jl. Panderman No. 7A Malang, Jawa Timur | Telp: (0341) 561871 | Email: smpksantamaria2@gmail.com', 105, 26, { align: 'center' });
+            doc.text('STATUS TERAKREDITASI "A" | NSS: 203056101019 | NPSN: 20533743', 105, 23, { align: 'center' });
+            doc.text('Jl. Panderman 7A Malang 65112 | Telp. 0341-561871 | Email: smpkstmaria2mlg@gmail.com', 105, 27, { align: 'center' });
 
-            doc.setDrawColor(0, 0, 128);
+            // Garis Ganda Kop Surat Resmi
+            doc.setDrawColor(0, 0, 0);
             doc.setLineWidth(0.8);
-            doc.line(15, 29, 195, 29);
+            doc.line(15, 29.5, 195, 29.5);
             doc.setLineWidth(0.2);
-            doc.line(15, 30, 195, 30);
+            doc.line(15, 30.5, 195, 30.5);
 
-            // Title
-            doc.setFont('helvetica', 'bold');
-            doc.setFontSize(12);
-            doc.setTextColor(0, 0, 128);
-            doc.text('LEMBAR HASIL USER ACCEPTANCE TESTING (UAT)', 105, 38, { align: 'center' });
-            doc.setFontSize(10);
-            doc.setTextColor(40, 40, 40);
-            doc.text(`Sistem Informasi Kegiatan Ekstrakurikuler (SIKASA) - Role: ${roleMeta.title.toUpperCase()}`, 105, 43, { align: 'center' });
+            // ===== 2. JUDUL DOKUMEN LAPORAN =====
+            doc.setFont('times', 'bold');
+            doc.setFontSize(11);
+            doc.setTextColor(20, 20, 20);
+            doc.text('LAPORAN HASIL PENGUJIAN KELAYAKAN SISTEM', 105, 37, { align: 'center' });
+            doc.text('USER ACCEPTANCE TESTING (UAT)', 105, 42, { align: 'center' });
 
-            // Identity Box
+            doc.setFont('times', 'normal');
+            doc.setFontSize(9);
+            doc.text(`Sistem Informasi Kegiatan Ekstrakurikuler (SIKASA) — Role: ${roleMeta.title.toUpperCase()}`, 105, 46.5, { align: 'center' });
+
+            // ===== 3. IDENTITAS & REKAPITULASI HASIL (FORMAL METRICS) =====
+            const dateObj = new Date(dateStr);
+            const formattedDate = !isNaN(dateObj) ? dateObj.toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' }) : dateStr;
+
             doc.autoTable({
-                startY: 48,
+                startY: 50,
                 theme: 'plain',
-                styles: { fontSize: 8.5, cellPadding: 1.5 },
+                styles: { font: 'times', fontSize: 8.5, cellPadding: 1.2 },
                 columnStyles: {
-                    0: { fontStyle: 'bold', width: 35 },
-                    1: { width: 65 },
-                    2: { fontStyle: 'bold', width: 35 },
-                    3: { width: 50 }
+                    0: { fontStyle: 'bold', width: 38 },
+                    1: { width: 62 },
+                    2: { fontStyle: 'bold', width: 38 },
+                    3: { width: 52 }
                 },
                 body: [
-                    ['Nama Penguji', `: ${name}`, 'Tanggal Pengujian', `: ${dateStr}`],
-                    ['Email Penguji', `: ${email}`, 'Peran (Role)', `: ${roleMeta.title}`],
+                    ['Nama Penguji', `: ${name}`, 'Tanggal Pengujian', `: ${formattedDate}`],
+                    ['Email Penguji', `: ${email}`, 'Peran / Role', `: ${roleMeta.title}`],
+                    ['Total Butir Pengujian', `: ${totalQ} Butir Skenario`, 'Status Terjawab', `: ${answeredCount} dari ${totalQ} Butir (${Math.round((answeredCount/totalQ)*100)}%)`],
+                    ['Tingkat Lulus (Pass)', `: ${passCount} Butir (${passPct}%)`, 'Tingkat Gagal (Fail)', `: ${failCount} Butir (${failPct}%)`],
+                    ['Indeks Kepuasan Penguji', `: ${satisfaction}`, '', '']
                 ]
             });
 
-            // Table Data
-            const results = testResults[currentRole] || {};
+            // ===== 4. TABEL SKENARIO PENGUJIAN =====
             const tableRows = roleMeta.questions.map((q, idx) => {
-                const res = results[q.id] || { status: 'pass', note: '' };
-                const statusText = res.status === 'pass' ? 'LULUS (PASS)' : 'GAGAL (FAIL)';
+                const res = results[q.id];
+                let statusText = 'BELUM DIISI';
+                if (res && res.status === 'pass') statusText = 'LULUS (PASS)';
+                if (res && res.status === 'fail') statusText = 'GAGAL (FAIL)';
+
                 return [
                     idx + 1,
                     q.modul,
                     q.scenario,
                     q.expected,
                     statusText,
-                    res.note || '-'
+                    (res && res.note) ? res.note : '-'
                 ];
             });
 
             doc.autoTable({
-                startY: doc.lastAutoTable.finalY + 4,
-                head: [['No', 'Modul', 'Skenario Pengujian UAT', 'Hasil Diharapkan', 'Status', 'Catatan']],
+                startY: doc.lastAutoTable.finalY + 3,
+                head: [['No', 'Modul / Fitur', 'Skenario Pengujian UAT', 'Hasil yang Diharapkan', 'Hasil Uji', 'Catatan Penguji']],
                 body: tableRows,
                 theme: 'grid',
+                styles: {
+                    font: 'times',
+                    fontSize: 7.5,
+                    cellPadding: 1.8,
+                    overflow: 'linebreak',
+                    textColor: [20, 20, 20],
+                    lineColor: [180, 180, 180],
+                    lineWidth: 0.15
+                },
                 headStyles: {
-                    fillColor: [0, 0, 128],
-                    textColor: [255, 255, 255],
+                    fillColor: [240, 240, 240],
+                    textColor: [20, 20, 20],
                     fontSize: 8,
                     fontStyle: 'bold',
-                    halign: 'center'
-                },
-                styles: {
-                    fontSize: 7.5,
-                    cellPadding: 2,
-                    overflow: 'linebreak',
-                    textColor: [40, 40, 40]
+                    halign: 'center',
+                    lineColor: [150, 150, 150],
+                    lineWidth: 0.2
                 },
                 columnStyles: {
                     0: { halign: 'center', cellWidth: 8 },
-                    1: { fontStyle: 'bold', cellWidth: 22 },
+                    1: { fontStyle: 'bold', cellWidth: 24 },
                     2: { cellWidth: 55 },
                     3: { cellWidth: 42 },
-                    4: { halign: 'center', fontStyle: 'bold', cellWidth: 24 },
+                    4: { halign: 'center', fontStyle: 'bold', cellWidth: 22 },
                     5: { cellWidth: 35 }
                 },
                 didParseCell: function(data) {
                     if (data.section === 'body' && data.column.index === 4) {
                         if (data.cell.raw === 'LULUS (PASS)') {
-                            data.cell.styles.textColor = [16, 120, 60];
+                            data.cell.styles.textColor = [15, 115, 55];
+                        } else if (data.cell.raw === 'GAGAL (FAIL)') {
+                            data.cell.styles.textColor = [185, 25, 25];
                         } else {
-                            data.cell.styles.textColor = [200, 30, 30];
+                            data.cell.styles.textColor = [120, 120, 120];
                         }
                     }
                 }
             });
 
-            // Kesimpulan & Tanda Tangan
+            // ===== 5. KESIMPULAN & LEMBAR TANDA TANGAN FORMAL =====
             let finalY = doc.lastAutoTable.finalY + 6;
-            if (finalY > 235) {
+            if (finalY > 230) {
                 doc.addPage();
                 finalY = 20;
             }
 
-            doc.setFont('helvetica', 'bold');
+            doc.setFont('times', 'bold');
             doc.setFontSize(8.5);
-            doc.setTextColor(0, 0, 128);
+            doc.setTextColor(20, 20, 20);
             doc.text('Kesimpulan & Rekomendasi Penguji:', 15, finalY);
 
-            doc.setFont('helvetica', 'normal');
+            doc.setFont('times', 'normal');
             doc.setFontSize(8);
-            doc.setTextColor(50, 50, 50);
+            doc.setTextColor(40, 40, 40);
             const splitNotes = doc.splitTextToSize(notes, 180);
-            doc.text(splitNotes, 15, finalY + 5);
+            doc.text(splitNotes, 15, finalY + 4.5);
 
-            const signY = finalY + 12 + (splitNotes.length * 4);
-            const dateObj = new Date(dateStr);
-            const formattedDate = !isNaN(dateObj) ? dateObj.toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' }) : dateStr;
+            const signY = finalY + 10 + (splitNotes.length * 4);
 
             doc.setFontSize(8.5);
             doc.text(`Malang, ${formattedDate}`, 145, signY);
-            doc.text('Penguji yang Menyetujui,', 145, signY + 5);
+            doc.text('Penguji yang Menyetujui,', 145, signY + 4.5);
 
-            doc.setFont('helvetica', 'bold');
-            doc.text(name, 145, signY + 28);
-            doc.setFont('helvetica', 'normal');
-            doc.setFontSize(7.5);
-            doc.text(`Role: ${roleMeta.title}`, 145, signY + 32);
+            // Kolom tanda tangan
+            doc.setFont('times', 'bold');
+            doc.text(name, 145, signY + 26);
+            doc.setFont('times', 'normal');
+            doc.setFontSize(8);
+            doc.text(`Peran: ${roleMeta.title}`, 145, signY + 30);
 
-            // Save PDF
+            // Simpan PDF
             const safeName = roleMeta.title.replace(/\s+/g, '_');
-            doc.save(`UAT_SIKASA_${safeName}_SMPK_Santa_Maria_2.pdf`);
+            doc.save(`Laporan_UAT_SIKASA_${safeName}_SMPK_Santa_Maria_2.pdf`);
         }
     </script>
 </body>
