@@ -1,0 +1,722 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>UAT SIKASA - SMPK Santa Maria 2 Malang</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        brand: {
+                            navy: '#000080',
+                            navyDark: '#000066',
+                            navyLight: '#1e3a8a',
+                            accent: '#3b82f6',
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+    <!-- Google Fonts & Lucide Icons -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <!-- jsPDF & html2canvas -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.31/jspdf.plugin.autotable.min.js"></script>
+    <style>
+        body { font-family: 'Plus Jakarta Sans', sans-serif; }
+        .tab-btn.active {
+            background-color: #000080;
+            color: #ffffff;
+            box-shadow: 0 10px 25px -5px rgba(0, 0, 128, 0.3);
+        }
+        @media print {
+            .no-print { display: none !important; }
+            body { background: white !important; }
+        }
+    </style>
+</head>
+<body class="bg-slate-50 text-slate-800 min-h-screen flex flex-col">
+
+    <!-- TOP HEADER -->
+    <header class="bg-white border-b border-slate-200 sticky top-0 z-40 shadow-sm backdrop-blur-md bg-white/90">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-3.5 flex items-center justify-between">
+            <div class="flex items-center gap-3.5">
+                <div class="w-11 h-11 bg-brand-navy rounded-2xl flex items-center justify-center text-white shadow-md shadow-brand-navy/20 font-black text-xl tracking-wider">
+                    S
+                </div>
+                <div>
+                    <div class="flex items-center gap-2">
+                        <span class="font-black text-brand-navy text-lg tracking-tight">SIKASA</span>
+                        <span class="bg-blue-100 text-brand-navy text-[10px] font-black uppercase px-2 py-0.5 rounded-full border border-blue-200">UAT PORTAL</span>
+                    </div>
+                    <p class="text-xs text-slate-400 font-medium">SMPK Santa Maria 2 Malang</p>
+                </div>
+            </div>
+
+            <div class="flex items-center gap-2 sm:gap-3">
+                <button onclick="fillDummyData()" class="px-3.5 py-2 text-xs font-bold rounded-xl bg-amber-50 hover:bg-amber-100 text-amber-700 border border-amber-200 transition-all flex items-center gap-1.5 shadow-sm active:scale-95" title="Isi semua form & jawaban otomatis (Pass)">
+                    <i data-lucide="sparkles" class="w-4 h-4 text-amber-600"></i>
+                    <span class="hidden sm:inline">Isi Otomatis</span> (Auto Fill)
+                </button>
+                <button onclick="resetCurrentForm()" class="px-3.5 py-2 text-xs font-bold rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-600 transition-all flex items-center gap-1.5 active:scale-95">
+                    <i data-lucide="rotate-ccw" class="w-4 h-4"></i>
+                    <span class="hidden sm:inline">Reset</span>
+                </button>
+            </div>
+        </div>
+    </header>
+
+    <!-- HERO SECTION -->
+    <div class="bg-gradient-to-br from-brand-navy via-brand-navyDark to-slate-900 text-white relative overflow-hidden">
+        <div class="absolute inset-0 bg-[radial-gradient(#ffffff_1px,transparent_1px)] [background-size:24px_24px] opacity-10"></div>
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10 relative z-10">
+            <div class="max-w-3xl">
+                <div class="inline-flex items-center gap-2 px-3 py-1 bg-white/10 border border-white/20 rounded-full text-xs font-semibold text-blue-200 backdrop-blur-md mb-4">
+                    <i data-lucide="check-circle" class="w-3.5 h-3.5 text-emerald-400"></i>
+                    Instrumen Resmi UAT Sistem Informasi Ekstrakurikuler
+                </div>
+                <h1 class="text-3xl sm:text-4xl font-extrabold tracking-tight">Formulir Pengujian User Acceptance Testing (UAT)</h1>
+                <p class="mt-3 text-slate-300 text-sm sm:text-base leading-relaxed">
+                    Silakan lengkapi identitas penguji, pilih peran (*role*), dan lakukan pengujian terhadap butir-butir skenario yang telah disesuaikan dengan alur sistem SIKASA.
+                </p>
+            </div>
+        </div>
+    </div>
+
+    <!-- MAIN CONTAINER -->
+    <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 flex-1 w-full space-y-8">
+
+        <!-- 1. IDENTITAS PENGUJI CARD -->
+        <section class="bg-white rounded-3xl p-6 sm:p-8 border border-slate-200 shadow-sm relative overflow-hidden">
+            <div class="flex items-center gap-3 mb-6 pb-4 border-b border-slate-100">
+                <div class="p-2.5 bg-blue-50 text-brand-navy rounded-2xl">
+                    <i data-lucide="user-check" class="w-6 h-6"></i>
+                </div>
+                <div>
+                    <h2 class="text-lg font-extrabold text-slate-800">1. Identitas Penguji (Tester)</h2>
+                    <p class="text-xs text-slate-400">Data ini akan dicatat pada lembar pengesahan hasil pengujian</p>
+                </div>
+            </div>
+
+            <div class="grid grid-cols-1 sm:grid-cols-3 gap-5">
+                <div>
+                    <label class="block text-xs font-extrabold uppercase tracking-wider text-slate-600 mb-2">
+                        Nama Lengkap <span class="text-rose-500">*</span>
+                    </label>
+                    <div class="relative">
+                        <i data-lucide="user" class="w-4 h-4 text-slate-400 absolute left-3.5 top-3.5"></i>
+                        <input type="text" id="testerName" placeholder="Contoh: Dra. Maria Angelina" class="w-full pl-10 pr-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm font-semibold text-slate-700 focus:bg-white focus:outline-none focus:ring-2 focus:ring-brand-navy/20 focus:border-brand-navy transition-all">
+                    </div>
+                </div>
+
+                <div>
+                    <label class="block text-xs font-extrabold uppercase tracking-wider text-slate-600 mb-2">
+                        Email Penguji <span class="text-rose-500">*</span>
+                    </label>
+                    <div class="relative">
+                        <i data-lucide="mail" class="w-4 h-4 text-slate-400 absolute left-3.5 top-3.5"></i>
+                        <input type="email" id="testerEmail" placeholder="Contoh: maria.tester@smpksantamaria2.sch.id" class="w-full pl-10 pr-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm font-semibold text-slate-700 focus:bg-white focus:outline-none focus:ring-2 focus:ring-brand-navy/20 focus:border-brand-navy transition-all">
+                    </div>
+                </div>
+
+                <div>
+                    <label class="block text-xs font-extrabold uppercase tracking-wider text-slate-600 mb-2">
+                        Tanggal Pengujian <span class="text-rose-500">*</span>
+                    </label>
+                    <div class="relative">
+                        <i data-lucide="calendar" class="w-4 h-4 text-slate-400 absolute left-3.5 top-3.5"></i>
+                        <input type="date" id="testerDate" class="w-full pl-10 pr-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm font-semibold text-slate-700 focus:bg-white focus:outline-none focus:ring-2 focus:ring-brand-navy/20 focus:border-brand-navy transition-all">
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- 2. PILIH ROLE TAB -->
+        <section class="space-y-4">
+            <div class="flex items-center justify-between">
+                <div>
+                    <h2 class="text-lg font-extrabold text-slate-800 flex items-center gap-2">
+                        <span>2. Pilih Aktor / Role Pengujian</span>
+                    </h2>
+                    <p class="text-xs text-slate-400">Pertanyaan dan skenario pengujian akan otomatis berganti sesuai peran yang dipilih</p>
+                </div>
+                <div id="roleStatsBadge" class="hidden sm:inline-flex items-center gap-1.5 px-3 py-1 bg-emerald-50 text-emerald-700 rounded-full border border-emerald-200 text-xs font-bold">
+                    <i data-lucide="check-check" class="w-3.5 h-3.5"></i>
+                    <span id="roleAnswerCount">0 / 0 Terjawab</span>
+                </div>
+            </div>
+
+            <div class="grid grid-cols-2 sm:grid-cols-5 gap-3">
+                <button type="button" onclick="selectRole('admin')" id="tab-admin" class="tab-btn active p-3.5 rounded-2xl bg-white border border-slate-200 text-slate-700 font-extrabold text-xs flex flex-col items-center gap-2 hover:border-brand-navy transition-all text-center">
+                    <div class="w-9 h-9 rounded-xl bg-blue-50 text-brand-navy flex items-center justify-center">
+                        <i data-lucide="shield-check" class="w-5 h-5"></i>
+                    </div>
+                    <span>Administrator</span>
+                </button>
+
+                <button type="button" onclick="selectRole('kepala_sekolah')" id="tab-kepala_sekolah" class="tab-btn p-3.5 rounded-2xl bg-white border border-slate-200 text-slate-700 font-extrabold text-xs flex flex-col items-center gap-2 hover:border-brand-navy transition-all text-center">
+                    <div class="w-9 h-9 rounded-xl bg-purple-50 text-purple-700 flex items-center justify-center">
+                        <i data-lucide="building-2" class="w-5 h-5"></i>
+                    </div>
+                    <span>Kepala Sekolah</span>
+                </button>
+
+                <button type="button" onclick="selectRole('pelatih')" id="tab-pelatih" class="tab-btn p-3.5 rounded-2xl bg-white border border-slate-200 text-slate-700 font-extrabold text-xs flex flex-col items-center gap-2 hover:border-brand-navy transition-all text-center">
+                    <div class="w-9 h-9 rounded-xl bg-amber-50 text-amber-700 flex items-center justify-center">
+                        <i data-lucide="trophy" class="w-5 h-5"></i>
+                    </div>
+                    <span>Pelatih Ekskul</span>
+                </button>
+
+                <button type="button" onclick="selectRole('pendamping')" id="tab-pendamping" class="tab-btn p-3.5 rounded-2xl bg-white border border-slate-200 text-slate-700 font-extrabold text-xs flex flex-col items-center gap-2 hover:border-brand-navy transition-all text-center">
+                    <div class="w-9 h-9 rounded-xl bg-emerald-50 text-emerald-700 flex items-center justify-center">
+                        <i data-lucide="user-cog" class="w-5 h-5"></i>
+                    </div>
+                    <span>Guru Pendamping</span>
+                </button>
+
+                <button type="button" onclick="selectRole('siswa')" id="tab-siswa" class="tab-btn p-3.5 rounded-2xl bg-white border border-slate-200 text-slate-700 font-extrabold text-xs flex flex-col items-center gap-2 hover:border-brand-navy transition-all text-center col-span-2 sm:col-span-1">
+                    <div class="w-9 h-9 rounded-xl bg-sky-50 text-sky-700 flex items-center justify-center">
+                        <i data-lucide="graduation-cap" class="w-5 h-5"></i>
+                    </div>
+                    <span>Siswa</span>
+                </button>
+            </div>
+        </section>
+
+        <!-- 3. ROLE DESCRIPTION & SUMMARY -->
+        <section id="roleHeaderCard" class="bg-blue-50/70 border border-blue-200/80 rounded-2xl p-5 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+            <div class="flex items-start gap-3.5">
+                <div class="p-2.5 bg-brand-navy text-white rounded-xl mt-0.5">
+                    <i id="roleHeaderIcon" data-lucide="shield-check" class="w-5 h-5"></i>
+                </div>
+                <div>
+                    <h3 id="roleTitle" class="text-base font-extrabold text-brand-navy">Pengujian Role: Administrator</h3>
+                    <p id="roleDescription" class="text-xs text-slate-600 mt-0.5">Pengujian mencakup manajemen data master, verifikasi pendaftaran, rekapitulasi, dan laporan resmi.</p>
+                </div>
+            </div>
+            <div class="flex items-center gap-2">
+                <button type="button" onclick="quickPassAll()" class="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-bold shadow-sm transition-all active:scale-95 flex items-center gap-1.5">
+                    <i data-lucide="check" class="w-3.5 h-3.5"></i> Set Semua Pass
+                </button>
+            </div>
+        </section>
+
+        <!-- 4. PERTANYAAN TABLE -->
+        <section class="bg-white rounded-3xl border border-slate-200 shadow-sm overflow-hidden">
+            <div class="overflow-x-auto">
+                <table class="w-full text-left border-collapse">
+                    <thead>
+                        <tr class="bg-slate-100/80 border-b border-slate-200 text-[11px] font-black uppercase tracking-wider text-slate-600">
+                            <th class="py-4 px-4 w-12 text-center">No</th>
+                            <th class="py-4 px-5 w-48">Modul / Fitur</th>
+                            <th class="py-4 px-5">Butir Skenario Pengujian UAT</th>
+                            <th class="py-4 px-5 w-52">Hasil yang Diharapkan</th>
+                            <th class="py-4 px-5 w-44 text-center">Status Hasil</th>
+                            <th class="py-4 px-5 w-56">Catatan / Saran</th>
+                        </tr>
+                    </thead>
+                    <tbody id="questionTableBody" class="divide-y divide-slate-100 text-sm font-medium">
+                        <!-- Questions will be injected dynamically by JS -->
+                    </tbody>
+                </table>
+            </div>
+        </section>
+
+        <!-- 5. KESIMPULAN & AKSI -->
+        <section class="bg-white rounded-3xl p-6 sm:p-8 border border-slate-200 shadow-sm space-y-6">
+            <div>
+                <label class="block text-xs font-extrabold uppercase tracking-wider text-slate-600 mb-2">
+                    Kesimpulan & Saran Penguji Secara Keseluruhan
+                </label>
+                <textarea id="overallNotes" rows="3" placeholder="Tuliskan catatan umum, rekomendasi perbaikan, atau apresiasi terkait kesiapan sistem SIKASA..." class="w-full p-4 bg-slate-50 border border-slate-200 rounded-2xl text-sm font-medium text-slate-700 focus:bg-white focus:outline-none focus:ring-2 focus:ring-brand-navy/20 focus:border-brand-navy transition-all"></textarea>
+            </div>
+
+            <div class="pt-4 border-t border-slate-100 flex flex-col sm:flex-row items-center justify-between gap-4">
+                <div class="text-xs text-slate-500 font-medium">
+                    <span class="font-bold text-slate-700" id="summaryStats">0 Disetujui (Pass) • 0 Belum (Fail)</span>
+                </div>
+
+                <div class="flex items-center gap-3 w-full sm:w-auto">
+                    <button type="button" onclick="printDoc()" class="flex-1 sm:flex-none px-5 py-3 rounded-2xl bg-slate-100 hover:bg-slate-200 text-slate-700 font-extrabold text-xs uppercase tracking-wider transition-all flex items-center justify-center gap-2 active:scale-95">
+                        <i data-lucide="printer" class="w-4 h-4"></i> Cetak / Print
+                    </button>
+                    <button type="button" onclick="exportToPDF()" class="flex-1 sm:flex-none px-6 py-3 rounded-2xl bg-brand-navy hover:bg-brand-navyDark text-white font-extrabold text-xs uppercase tracking-wider shadow-lg shadow-brand-navy/20 transition-all flex items-center justify-center gap-2 active:scale-95">
+                        <i data-lucide="download" class="w-4 h-4"></i> Download PDF Resmi
+                    </button>
+                </div>
+            </div>
+        </section>
+
+    </main>
+
+    <!-- FOOTER -->
+    <footer class="bg-white border-t border-slate-200 py-6 text-center text-xs text-slate-400 font-medium no-print">
+        <p>&copy; 2026 SIKASA - SMPK Santa Maria 2 Malang. User Acceptance Testing Instrument.</p>
+    </footer>
+
+    <!-- UAT QUESTIONS DATA & SCRIPT -->
+    <script>
+        const UAT_DATA = {
+            admin: {
+                title: "Administrator (Admin)",
+                icon: "shield-check",
+                desc: "Administrator mengelola master data sekolah, periode akademik, persetujuan pendaftaran, rekapitulasi kehadiran, nilai, serta penerbitan laporan resmi.",
+                dummy: {
+                    name: "Ignatius Wahyu, S.Kom.",
+                    email: "admin.wahyu@smpksantamaria2.sch.id",
+                    notes: "Secara keseluruhan seluruh fitur Administrator berfungsi sangat baik dan stabil. Pengujian CRUD data siswa, ekskul, serta approval dan cetak laporan absensi/nilai berjalan sempurna."
+                },
+                questions: [
+                    { id: 1, modul: "Autentikasi", scenario: "Apakah Admin dapat login menggunakan username 'admin' dan password 'admin123' serta diarahkan langsung ke dashboard Admin?", expected: "Login berhasil, token tersimpan, dan dashboard admin terbuka." },
+                    { id: 2, modul: "Dashboard", scenario: "Apakah dashboard admin menampilkan statistik ringkasan (Total Siswa, Ekskul, Pelatih, Siswa Aktif, Pendaftaran Tertunda) secara akurat sesuai database?", expected: "Data metrik angka dan grafik sinkron dengan database aktif." },
+                    { id: 3, modul: "Tahun Ajaran", scenario: "Apakah Admin dapat melihat, menambah periode akademik baru (Tahun Ajaran & Semester), serta mengaktifkan periode akademik yang berlaku?", expected: "Periode aktif berhasil diperbarui dan memengaruhi sesi seluruh sistem." },
+                    { id: 4, modul: "Master Data Siswa", scenario: "Apakah Admin dapat melihat daftar seluruh siswa, menambah siswa baru, mengedit data identitas siswa, serta memfilter berdasarkan kelas?", expected: "CRUD data siswa berjalan lancar tanpa error validasi format data." },
+                    { id: 5, modul: "Master Data Kelas", scenario: "Apakah Admin dapat mengelola master kelas (tingkat VII, VIII, IX) dan melihat jumlah siswa yang terdaftar di masing-masing rombel?", expected: "Daftar kelas tampil lengkap dan jumlah siswa per kelas terhitung akurat." },
+                    { id: 6, modul: "Master Ekstrakurikuler", scenario: "Apakah Admin dapat menambah, mengubah informasi jadwal (hari, jam, tempat), serta menetapkan pelatih pada kegiatan ekstrakurikuler?", expected: "Data ekskul berhasil disimpan dan jadwal langsung terdistribusi ke sistem." },
+                    { id: 7, modul: "Master Pelatih", scenario: "Apakah Admin dapat mendaftarkan akun pelatih baru, melengkapi kontak, dan menghubungkannya dengan ekstrakurikuler yang diampu?", expected: "Pelatih terdaftar dan otomatis dapat login dengan kredensial yang dibuat." },
+                    { id: 8, modul: "Master Guru Pendamping", scenario: "Apakah Admin dapat mengelola data Guru Pendamping ekskul lengkap dengan NIP dan kontak yang valid?", expected: "Data guru pendamping tersimpan dan dapat ditautkan ke kegiatan ekskul." },
+                    { id: 9, modul: "Persetujuan Pendaftaran", scenario: "Apakah Admin dapat memverifikasi pengajuan pendaftaran ekskul siswa dan melakukan tindakan Approve (Setujui) atau Reject (Tolak)?", expected: "Status pengajuan berubah seketika dan siswa masuk ke rombel ekskul." },
+                    { id: 10, modul: "Monitoring Absensi", scenario: "Apakah Admin dapat memantau rekaman absensi harian yang telah diinput oleh pelatih/guru pendamping pada tanggal tertentu?", expected: "Daftar kehadiran per siswa (Hadir, Izin, Sakit, Alfa) tampil jelas." },
+                    { id: 11, modul: "Kelola Izin Siswa", scenario: "Apakah Admin dapat meninjau surat izin yang diunggah siswa serta mengubah status verifikasi izin (Disetujui/Ditolak)?", expected: "Berkas surat izin dapat diunduh/dilihat dan status verifikasi terupdate." },
+                    { id: 12, modul: "Rekapitulasi Absensi", scenario: "Apakah halaman Rekap Absensi dapat memfilter akumulasi kehadiran per ekskul, menampilkan persentase keaktifan siswa, dan mengekspornya ke format CSV?", expected: "Filter ekskul berfungsi normal, metrik terhitung otomatis, file CSV terunduh." },
+                    { id: 13, modul: "Laporan Absensi Resmi", scenario: "Apakah Admin dapat membuka halaman Laporan Absensi, memfilter berdasarkan ekskul dan kelas, serta mencetak dokumen resmi bertanda tangan (PDF/Print)?", expected: "Dokumen cetak memuat Kop Surat Sekolah resmi, tabel rapi, dan kolom tanda tangan." },
+                    { id: 14, modul: "Lihat & Rekap Nilai", scenario: "Apakah Admin dapat melihat nilai akhir rapor ekstrakurikuler seluruh siswa beserta konversi predikat (A, B, C, D) secara otomatis?", expected: "Nilai dan predikat tampil akurat sesuai rentang skor sekolah." },
+                    { id: 15, modul: "Filter Rekap Nilai", scenario: "Apakah saat Admin memilih ekstrakurikuler tertentu (misal: Tari Modern), sistem menampilkan data siswa pada semester aktif tanpa terjadi hasil kosong (0 Data)?", expected: "Siswa yang terdaftar pada ekskul tersebut langsung muncul beserta capaian nilainya." },
+                    { id: 16, modul: "Laporan Nilai Resmi", scenario: "Apakah Admin dapat mengunduh/mencetak dokumen Laporan Nilai resmi per ekstrakurikuler dengan format KOP SMPK Santa Maria 2?", expected: "File PDF ter-generate rapi dan siap diserahkan kepada pimpinan sekolah." },
+                    { id: 17, modul: "Monitoring Ekstrakurikuler", scenario: "Apakah halaman Monitoring Admin mampu menampilkan perbandingan performa kehadiran dan capaian nilai antar ekstrakurikuler?", expected: "Grafik atau tabel perbandingan kinerja ekskul tampil informatif." },
+                    { id: 18, modul: "Keamanan Sesi & Logout", scenario: "Apakah Admin dapat keluar dari sistem dengan aman melalui tombol Logout dan sesi token langsung dihapus sehingga tidak dapat diakses via tombol Back?", expected: "Aplikasi kembali ke halaman login dan seluruh data sesi dibersihkan." }
+                ]
+            },
+            kepala_sekolah: {
+                title: "Kepala Sekolah",
+                icon: "building-2",
+                desc: "Kepala Sekolah berfokus pada pengawasan manajerial, pemantauan agenda kegiatan hari ini, rekapitulasi partisipasi siswa, serta verifikasi laporan resmi.",
+                dummy: {
+                    name: "Sr. M. Elfrida, SPM., S.Psi., M.M.",
+                    email: "kepsek@smpksantamaria2.sch.id",
+                    notes: "Sangat baik. Dashboard eksekutif sangat membantu memantau kegiatan harian dan laporan resmi sudah sesuai standar sekolah tanpa risiko data terubah secara tidak sengaja (read-only aman)."
+                },
+                questions: [
+                    { id: 1, modul: "Autentikasi", scenario: "Apakah Kepala Sekolah dapat login dengan akun 'kepalasekolah' / 'kepalasekolah123' dan langsung menuju halaman Dashboard Kepala Sekolah?", expected: "Login berhasil dan tampilan bertema eksekutif/manajerial muncul." },
+                    { id: 2, modul: "Indikator KPI Dashboard", scenario: "Apakah ringkasan statistik (Total Siswa, Total Ekskul, Total Pelatih, dan Siswa Aktif) pada dashboard Kepala Sekolah tersaji akurat?", expected: "Metrik sekolah tampil jelas di bagian kartu atas dashboard." },
+                    { id: 3, modul: "Slider Agenda Hari Ini", scenario: "Apakah widget Agenda Hari Ini menampilkan jadwal ekskul yang berlangsung hari ini lengkap dengan jam pelaksanaan, pelatih, lokasi, dan kontrol navigasi?", expected: "Informasi jadwal ekskul hari ini tampil otomatis sesuai kalender sistem." },
+                    { id: 4, modul: "Akses Cepat Ringkasan", scenario: "Apakah 4 kartu pintasan pada dashboard (Laporan Monitoring, Data Siswa, Laporan Absensi, Laporan Nilai) dapat diklik dan mengarahkan langsung ke halaman terkait?", expected: "Navigasi berjalan mulus tanpa broken link atau pesan error 404." },
+                    { id: 5, modul: "Monitoring Ekskul", scenario: "Apakah Kepala Sekolah dapat meninjau daftar kegiatan ekstrakurikuler aktif, jadwal mingguan, serta nama guru pendamping yang bertugas?", expected: "Data pengawasan kegiatan ekskul tersaji terstruktur." },
+                    { id: 6, modul: "Data Siswa (Read-Only)", scenario: "Apakah Kepala Sekolah dapat memantau direktori data siswa per kelas beserta riwayat ekstrakurikuler yang diikuti siswa tanpa hak ubah/hapus?", expected: "Data profil siswa dapat dilihat dengan batasan akses baca (read-only)." },
+                    { id: 7, modul: "Tinjauan Kehadiran Harian", scenario: "Apakah Kepala Sekolah dapat memeriksa catatan absensi per sesi latihan untuk memastikan kegiatan ekstrakurikuler terlaksana?", expected: "Riwayat tanggal latihan dan daftar kehadiran siswa dapat dipantau." },
+                    { id: 8, modul: "Rekapitulasi Kehadiran Siswa", scenario: "Apakah Kepala Sekolah dapat melihat persentase kehadiran siswa, tingkat kerajinan, dan siswa yang memiliki akumulasi absen/alfa?", expected: "Informasi akumulasi kehadiran tersaji komprehensif." },
+                    { id: 9, modul: "Pengawasan Nilai Ekskul", scenario: "Apakah Kepala Sekolah dapat memantau capaian nilai kompetensi dan deskripsi catatan perkembangan karakter siswa dari pelatih?", expected: "Nilai angka, predikat huruf, dan catatan evaluasi pelatih terbaca jelas." },
+                    { id: 10, modul: "Cetak Laporan Absensi", scenario: "Apakah Kepala Sekolah dapat membuka dokumen Laporan Absensi Resmi dan mencetaknya dalam bentuk PDF dengan tata letak lembar cetak standar sekolah?", expected: "Format dokumen PDF rapi, siap ditandatangani dan diarsipkan." },
+                    { id: 11, modul: "Cetak Laporan Nilai Rapor", scenario: "Apakah Kepala Sekolah dapat melihat rekapitulasi penilaian rapor akhir kegiatan ekskul per semester untuk keperluan evaluasi mutu pendidikan?", expected: "Data nilai akhir per siswa dan pengesahan kepala sekolah tampil lengkap." },
+                    { id: 12, modul: "Filter Periode Akademik", scenario: "Apakah data pada seluruh laporan kepala sekolah menyesuaikan dengan tahun ajaran dan semester aktif yang dipilih?", expected: "Data lama tidak tercampur dengan periode berjalan." },
+                    { id: 13, modul: "Profil Kepala Sekolah", scenario: "Apakah Kepala Sekolah dapat melihat informasi akun profilnya dan memperbarui kata sandi akun secara mandiri?", expected: "Profil tertera benar dan proses ubah password berfungsi normal." },
+                    { id: 14, modul: "Validasi Keamanan Role", scenario: "Apakah Kepala Sekolah tidak memiliki tombol manipulasi data master (seperti tombol hapus siswa atau hapus kelas) demi integritas data?", expected: "Hak akses terkunci aman pada fungsi supervisi/monitoring." },
+                    { id: 15, modul: "Logout Pengguna", scenario: "Apakah proses keluar aplikasi (Logout) pada akun Kepala Sekolah berjalan aman dan memutus sesi otorisasi?", expected: "Pengguna kembali ke layar login awal." }
+                ]
+            },
+            pelatih: {
+                title: "Pelatih Ekstrakurikuler",
+                icon: "trophy",
+                desc: "Pelatih bertanggung jawab mengelola jadwal latihan, memvalidasi kehadiran siswa binaannya, mengatur bobot penilaian, menginput materi jurnal latihan, dan memberikan evaluasi nilai.",
+                dummy: {
+                    name: "Bayu Anggara, S.Pd.",
+                    email: "bayu.tari@smpksantamaria2.sch.id",
+                    notes: "Formulir absensi dan input jurnal harian sangat mudah digunakan di perangkat laptop maupun HP. Penilaian otomatis mengkalkulasi predikat huruf dengan akurat."
+                },
+                questions: [
+                    { id: 1, modul: "Autentikasi Pelatih", scenario: "Apakah Pelatih dapat login menggunakan username pribadinya (misal: 'Bayu', 'tegar', 'Edo') dengan password '123456'?", expected: "Pelatih diarahkan ke Dashboard Pelatih sesuai ekskul binaannya." },
+                    { id: 2, modul: "Dashboard Pelatih", scenario: "Apakah dashboard menampilkan informasi ekstrakurikuler yang diampu, jumlah anggota aktif, dan jadwal latihan berikutnya?", expected: "Data binaan pelatih terisolasi dengan benar sesuai hak aksesnya." },
+                    { id: 3, modul: "Jadwal Ekstrakurikuler", scenario: "Apakah Pelatih dapat melihat jadwal rutin latihan (hari, jam mulai-selesai, dan lokasi/tempat latihan)?", expected: "Kalender jadwal tampil jelas dan informatif." },
+                    { id: 4, modul: "Daftar Siswa Binaan", scenario: "Apakah Pelatih dapat melihat daftar siswa yang telah disetujui (approved) bergabung dalam ekskul yang diampunya?", expected: "Roster anggota ekskul tampil lengkap beserta kelas dan nomor induknya." },
+                    { id: 5, modul: "Input Absensi Pertemuan", scenario: "Apakah Pelatih dapat memilih tanggal latihan dan mengisi status kehadiran siswa (Hadir, Izin, Sakit, Alfa) untuk seluruh anggota?", expected: "Formulir absensi tersimpan ke database dan status kehadiran terupdate." },
+                    { id: 6, modul: "Pencegahan Duplikasi Absensi", scenario: "Apakah sistem mencegah atau memperbarui data secara rapi jika pelatih mengedit absensi pada tanggal latihan yang sama?", expected: "Data absensi terbarui (update) tanpa terjadi duplikasi baris data." },
+                    { id: 7, modul: "Pengisian Jurnal Pertemuan", scenario: "Apakah Pelatih dapat mencatat materi latihan dan catatan evaluasi pertemuan pada tanggal kegiatan latihan berlangsung?", expected: "Jurnal kegiatan tersimpan dan dapat ditinjau kembali di riwayat pertemuan." },
+                    { id: 8, modul: "Pengaturan Bobot Nilai", scenario: "Apakah Pelatih dapat menentukan aspek penilaian (misal: Teknik Dasar, Kedisiplinan, Kerjasama) beserta persentase bobotnya?", expected: "Total bobot aspek tersimpan dan menjadi acuan kalkulasi nilai akhir." },
+                    { id: 9, modul: "Input Nilai Per Pertemuan", scenario: "Apakah Pelatih dapat memasukkan nilai harian/latihan per siswa pada setiap pertemuan latihan?", expected: "Nilai sesi latihan tercatat dan terakumulasi ke rata-rata latihan siswa." },
+                    { id: 10, modul: "Perkembangan Nilai Siswa", scenario: "Apakah halaman Perkembangan Nilai menampilkan tren keaktifan, rata-rata nilai latihan, dan indikator status perkembangan siswa?", expected: "Pelatih mendapatkan visualisasi performa siswa secara terukur." },
+                    { id: 11, modul: "Input Nilai Akhir Rapor", scenario: "Apakah Pelatih dapat menginput nilai akhir semester dan deskripsi capaian kompetensi untuk rapor siswa?", expected: "Nilai tersimpan dan otomatis menentukan predikat huruf (A/B/C/D)." },
+                    { id: 12, modul: "Pemberian Catatan Khusus", scenario: "Apakah Pelatih dapat menuliskan saran pembinaan atau apresiasi pada kolom keterangan siswa?", expected: "Catatan kompetensi tersimpan dan akan muncul pada rapor siswa." },
+                    { id: 13, modul: "Peringatan Kehadiran Rendah", scenario: "Apakah sistem memberikan indikasi atau batasan nilai otomatis jika siswa memiliki jumlah Alfa melebihi ambang batas sekolah?", expected: "Aturan batas maksimal nilai berlaku sesuai ketentuan presensi sekolah." },
+                    { id: 14, modul: "Profil & Kontak Pelatih", scenario: "Apakah Pelatih dapat memeriksa kelengkapan biodata pribadinya (nomor HP, alamat) serta mengganti password akunnya?", expected: "Data profil dapat diperbarui dan password baru langsung berlaku." },
+                    { id: 15, modul: "Isolasi Data Antar Pelatih", scenario: "Apakah Pelatih dipastikan tidak dapat melihat atau mengutak-atik data siswa dari ekskul lain yang bukan binaannya?", expected: "Hak akses data privat dan terkunci hanya pada cabang ekskul pelatih tersebut." },
+                    { id: 16, modul: "Logout Pelatih", scenario: "Apakah Pelatih dapat keluar aplikasi dengan aman setelah selesai menginput data latihan?", expected: "Sesi login berakhir dan kembali ke halaman login." }
+                ]
+            },
+            pendamping: {
+                title: "Guru Pendamping",
+                icon: "user-cog",
+                desc: "Guru Pendamping mendampingi pelatih, mengawasi ketertiban siswa, memvalidasi surat izin, dan memonitor keselamatan kegiatan.",
+                dummy: {
+                    name: "Andik Setiawan, S.Pd.",
+                    email: "andik.pendamping@smpksantamaria2.sch.id",
+                    notes: "Penyelarasan hak akses ekskul binaan sangat tepat. Menu rekap absensi dan permohonan izin kini hanya memunculkan siswa dari ekskul yang saya dampingi."
+                },
+                questions: [
+                    { id: 1, modul: "Autentikasi Guru", scenario: "Apakah Guru Pendamping dapat login menggunakan username pribadinya (misal: 'andik', 'Yuni', 'lina') dengan password '123456'?", expected: "Login berhasil dan dashboard pendamping terbuka." },
+                    { id: 2, modul: "Dashboard Pendamping", scenario: "Apakah Guru Pendamping dapat melihat nama ekstrakurikuler yang didampinginya beserta nama pelatih mitra?", expected: "Informasi ekskul pendampingan tampil tepat." },
+                    { id: 3, modul: "Jadwal & Lokasi Kegiatan", scenario: "Apakah Guru Pendamping dapat memeriksa jadwal sesi latihan, hari, jam, dan lokasi ruangan/lapangan tempat kegiatan berlangsung?", expected: "Memudahkan guru hadir mendampingi di lokasi kegiatan." },
+                    { id: 4, modul: "Daftar Peserta Didik", scenario: "Apakah Guru Pendamping dapat melihat seluruh siswa anggota ekskul binaannya beserta kontak darurat?", expected: "Roster siswa tampil lengkap untuk memudahkan pengawasan." },
+                    { id: 5, modul: "Input / Review Absensi", scenario: "Apakah Guru Pendamping dapat turut menginput atau memverifikasi presensi kehadiran siswa di lapangan saat latihan berlangsung?", expected: "Presensi tercatat secara valid dan tersinkronisasi dengan pelatih." },
+                    { id: 6, modul: "Rekapitulasi Kehadiran", scenario: "Apakah Guru Pendamping dapat melihat ringkasan rekap kehadiran (Hadir, Izin, Sakit, Alfa) seluruh siswa binaannya?", expected: "Tabel rekap presensi menyajikan data akumulatif yang akurat." },
+                    { id: 7, modul: "Tinjau Pengajuan Izin Siswa", scenario: "Apakah Guru Pendamping menerima notifikasi atau daftar surat permohonan izin/sakit yang diajukan oleh siswa?", expected: "Pesan permohonan izin dan surat lampiran siswa dapat dibuka." },
+                    { id: 8, modul: "Monitoring Nilai Ekskul", scenario: "Apakah Guru Pendamping dapat memantau proses penilaian yang dilakukan pelatih terhadap perkembangan siswa?", expected: "Nilai dan capaian siswa dapat ditinjau untuk bahan laporan ke wali kelas." },
+                    { id: 9, modul: "Pengawasan Karakter & Disiplin", scenario: "Apakah Guru Pendamping dapat memantau catatan kedisiplinan dan keaktifan siswa selama mengikuti kegiatan ekskul?", expected: "Membantu guru mendampingi perkembangan afektif siswa." },
+                    { id: 10, modul: "Filter Periode Berjalan", scenario: "Apakah data siswa dan absensi yang ditampilkan sesuai dengan semester dan tahun ajaran yang sedang aktif?", expected: "Data sinkron dan tidak menampilkan data siswa yang sudah lulus." },
+                    { id: 11, modul: "Profil Guru Pendamping", scenario: "Apakah Guru Pendamping dapat melihat NIP dan nomor kontak terdaftar serta melakukan pembaruan password?", expected: "Profil tersaji benar dan pembaruan password berjalan lancar." },
+                    { id: 12, modul: "Pemisahan Hak Akses", scenario: "Apakah Guru Pendamping hanya memiliki akses pada ekskul yang ditugaskan kepadanya oleh pihak sekolah?", expected: "Guru tidak dapat mengakses data ekskul lain di luar surat tugasnya." },
+                    { id: 13, modul: "Keamanan Sesi & Logout", scenario: "Apakah proses logout Guru Pendamping berjalan sempurna dan menghapus token autentikasi di browser?", expected: "Pengguna kembali ke formulir login awal secara aman." }
+                ]
+            },
+            siswa: {
+                title: "Siswa",
+                icon: "graduation-cap",
+                desc: "Siswa bertindak sebagai partisipan yang memilih ekstrakurikuler, memantau jadwal kegiatan, mengajukan surat izin absensi, serta melihat capaian nilai rapor kegiatan.",
+                dummy: {
+                    name: "Carmenita Aurelia (Carmen)",
+                    email: "carmen.siswa@smpksantamaria2.sch.id",
+                    notes: "Fitur pengisian angket pilihan ekskul sangat praktis karena langsung membuat PDF resmi dengan tanda tangan digital orang tua. Batasan 2 ekskul dan tombol batal pendaftaran berjalan sangat baik."
+                },
+                questions: [
+                    { id: 1, modul: "Autentikasi Siswa", scenario: "Apakah Siswa dapat login dengan username akunnya (misal: 'carmen', 'Juha', 'Martin') dengan password '123456'?", expected: "Siswa diarahkan ke antarmuka Dashboard Siswa yang ramah pengguna." },
+                    { id: 2, modul: "Dashboard Siswa", scenario: "Apakah dashboard siswa menampilkan ucapan selamat datang, nama siswa, kelas, status keanggotaan ekskul, serta pengumuman penting?", expected: "Beranda siswa menyajikan status kegiatan yang sedang diikutinya." },
+                    { id: 3, modul: "Katalog Ekstrakurikuler", scenario: "Apakah Siswa dapat menelusuri seluruh daftar ekstrakurikuler yang tersedia di SMPK Santa Maria 2 beserta jadwal, tempat, dan pelatihnya?", expected: "Katalog ekskul tersaji jelas dengan deskripsi kegiatan masing-masing." },
+                    { id: 4, modul: "Pendaftaran Angket Resmi", scenario: "Apakah saat mendaftar, siswa dapat mengisi angket resmi persetujuan orang tua secara otomatis lengkap dengan tanda tangan digital canvas?", expected: "Sistem meng-generate dokumen PDF resmi dan mengunggahnya sebagai bukti izin." },
+                    { id: 5, modul: "Batas Maksimal 2 Ekskul", scenario: "Apakah sistem membatasi siswa hanya boleh memilih maksimal 2 ekskul (termasuk yang masih pending) dan menonaktifkan tombol pendaftaran jika kuota penuh?", expected: "Pendaftaran ekskul ke-3 terkunci dan muncul notifikasi kuota batas maksimal." },
+                    { id: 6, modul: "Pembatalan Pendaftaran Pending", scenario: "Apakah Siswa dapat membatalkan pengajuan pendaftaran yang masih berstatus 'Menunggu' (Pending) untuk mengganti ke ekskul lain?", expected: "Tombol 'Batalkan Pendaftaran' aktif, pendaftaran terhapus, dan kuota kembali bebas." },
+                    { id: 7, modul: "Jadwal Kegiatan Saya", scenario: "Apakah Siswa dapat melihat jadwal rutin kegiatan ekskul yang telah resmi diikutinya agar tidak terlewat sesi latihan?", expected: "Jam dan hari latihan tertera rapi pada menu Lihat Jadwal." },
+                    { id: 8, modul: "Formulir Pengajuan Izin", scenario: "Apakah Siswa dapat mengajukan izin ketidakhadiran dengan memilih tanggal latihan, kategori izin (Izin/Sakit), menulis alasan, dan melampirkan bukti surat?", expected: "Formulir izin berhasil dikirimkan ke pelatih dan guru pendamping." },
+                    { id: 9, modul: "Pelacakan Status Izin", scenario: "Apakah Siswa dapat melihat riwayat izin yang diajukan beserta status persetujuannya (Menunggu / Disetujui / Ditolak)?", expected: "Siswa mengetahui apakah surat izinnya telah diverifikasi oleh sekolah." },
+                    { id: 10, modul: "Riwayat Absensi Mandiri", scenario: "Apakah Siswa dapat memeriksa riwayat catatan kehadirannya (total hadir, izin, sakit, dan alfa) secara berkala?", expected: "Siswa dapat mengevaluasi keaktifannya sendiri secara transparan." },
+                    { id: 11, modul: "Transparansi Nilai Ekskul", scenario: "Apakah Siswa dapat melihat nilai rapor ekstrakurikuler yang diberikan oleh pelatih (nilai angka, predikat A/B/C/D, serta catatan capaian)?", expected: "Siswa dapat melihat hasil evaluasi belajarnya pada akhir semester." },
+                    { id: 12, modul: "Detail Catatan Pelatih", scenario: "Apakah Siswa dapat membaca pesan motivasi atau evaluasi teknik yang dituliskan oleh pelatih pada lembar nilainya?", expected: "Umpan balik instruktur terbaca jelas untuk memicu semangat siswa." },
+                    { id: 13, modul: "Profil Pribadi Siswa", scenario: "Apakah Siswa dapat melihat data diri (Nama, No Induk, Kelas, Tanggal Lahir) dan memastikan datanya telah sesuai?", expected: "Biodata siswa sesuai dengan data registrasi sekolah." },
+                    { id: 14, modul: "Ubah Kata Sandi Akun", scenario: "Apakah Siswa dapat mengganti kata sandi akunnya demi keamanan privasi akun masing-masing?", expected: "Sandi baru berhasil disimpan dan dapat digunakan untuk login berikutnya." },
+                    { id: 15, modul: "Keamanan Hak Akses Siswa", scenario: "Apakah Siswa dipastikan tidak dapat mengakses halaman manajemen admin, tidak bisa mengubah nilai, dan tidak bisa mengubah absensi orang lain?", expected: "Sistem menolak akses ilegal (redirect / proteksi rute halaman)." },
+                    { id: 16, modul: "Logout Siswa", scenario: "Apakah Siswa dapat keluar (Logout) dari sistem dengan lancar setelah selesai mengecek informasi ekskul?", expected: "Sesi akun siswa tertutup dengan sempurna." }
+                ]
+            }
+        };
+
+        // State Store
+        let currentRole = 'admin';
+        const testResults = {
+            admin: {},
+            kepala_sekolah: {},
+            pelatih: {},
+            pendamping: {},
+            siswa: {}
+        };
+
+        // Init page
+        document.addEventListener('DOMContentLoaded', () => {
+            // Set default date to today
+            const today = new Date().toISOString().split('T')[0];
+            document.getElementById('testerDate').value = today;
+
+            // Render current role
+            renderQuestions();
+            lucide.createIcons();
+        });
+
+        // Switch Role
+        function selectRole(roleKey) {
+            currentRole = roleKey;
+
+            // Update Tab UI
+            document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
+            const activeBtn = document.getElementById(`tab-${roleKey}`);
+            if (activeBtn) activeBtn.classList.add('active');
+
+            // Update Header Info
+            const roleMeta = UAT_DATA[roleKey];
+            document.getElementById('roleTitle').innerText = `Pengujian Role: ${roleMeta.title}`;
+            document.getElementById('roleDescription').innerText = roleMeta.desc;
+            document.getElementById('roleHeaderIcon').setAttribute('data-lucide', roleMeta.icon);
+
+            // Re-render table
+            renderQuestions();
+            lucide.createIcons();
+        }
+
+        // Render Questions Table
+        function renderQuestions() {
+            const roleData = UAT_DATA[currentRole];
+            const tbody = document.getElementById('questionTableBody');
+            tbody.innerHTML = '';
+
+            const results = testResults[currentRole] || {};
+
+            roleData.questions.forEach((q, idx) => {
+                const qResult = results[q.id] || { status: 'pass', note: '' };
+                const tr = document.createElement('tr');
+                tr.className = "hover:bg-slate-50/60 transition-colors";
+
+                tr.innerHTML = `
+                    <td class="py-4 px-4 text-center font-bold text-slate-400 text-xs">${idx + 1}</td>
+                    <td class="py-4 px-5">
+                        <span class="inline-block px-2.5 py-1 bg-blue-50 text-brand-navy rounded-lg text-xs font-extrabold border border-blue-100">
+                            ${q.modul}
+                        </span>
+                    </td>
+                    <td class="py-4 px-5 text-slate-800 font-semibold text-xs leading-relaxed">
+                        ${q.scenario}
+                    </td>
+                    <td class="py-4 px-5 text-slate-600 text-xs leading-relaxed">
+                        ${q.expected}
+                    </td>
+                    <td class="py-4 px-5 text-center">
+                        <div class="inline-flex rounded-xl p-1 bg-slate-100 border border-slate-200 gap-1">
+                            <button type="button" onclick="setAnswer(${q.id}, 'pass')" class="px-2.5 py-1 rounded-lg text-xs font-bold transition-all flex items-center gap-1 ${qResult.status === 'pass' ? 'bg-emerald-600 text-white shadow-sm' : 'text-slate-500 hover:text-slate-800'}">
+                                <i data-lucide="check" class="w-3.5 h-3.5"></i> Pass
+                            </button>
+                            <button type="button" onclick="setAnswer(${q.id}, 'fail')" class="px-2.5 py-1 rounded-lg text-xs font-bold transition-all flex items-center gap-1 ${qResult.status === 'fail' ? 'bg-rose-600 text-white shadow-sm' : 'text-slate-500 hover:text-slate-800'}">
+                                <i data-lucide="x" class="w-3.5 h-3.5"></i> Fail
+                            </button>
+                        </div>
+                    </td>
+                    <td class="py-4 px-5">
+                        <input type="text" value="${qResult.note || ''}" onchange="setNote(${q.id}, this.value)" placeholder="Catatan hasil uji..." class="w-full px-3 py-1.5 text-xs bg-slate-50 border border-slate-200 rounded-lg text-slate-700 focus:bg-white focus:outline-none focus:ring-1 focus:ring-brand-navy">
+                    </td>
+                `;
+                tbody.appendChild(tr);
+            });
+
+            updateStats();
+        }
+
+        // Set Pass / Fail
+        function setAnswer(qid, status) {
+            if (!testResults[currentRole]) testResults[currentRole] = {};
+            if (!testResults[currentRole][qid]) testResults[currentRole][qid] = { status: 'pass', note: '' };
+            testResults[currentRole][qid].status = status;
+            renderQuestions();
+            lucide.createIcons();
+        }
+
+        // Set Note
+        function setNote(qid, noteVal) {
+            if (!testResults[currentRole]) testResults[currentRole] = {};
+            if (!testResults[currentRole][qid]) testResults[currentRole][qid] = { status: 'pass', note: '' };
+            testResults[currentRole][qid].note = noteVal;
+        }
+
+        // Quick Pass All for current role
+        function quickPassAll() {
+            const roleData = UAT_DATA[currentRole];
+            if (!testResults[currentRole]) testResults[currentRole] = {};
+            roleData.questions.forEach(q => {
+                testResults[currentRole][q.id] = {
+                    status: 'pass',
+                    note: 'Semua fungsi berjalan sesuai spesifikasi dan lulus pengujian.'
+                };
+            });
+            renderQuestions();
+            lucide.createIcons();
+        }
+
+        // Fill Dummy Data (Auto Fill)
+        function fillDummyData() {
+            const roleMeta = UAT_DATA[currentRole];
+            document.getElementById('testerName').value = roleMeta.dummy.name;
+            document.getElementById('testerEmail').value = roleMeta.dummy.email;
+            document.getElementById('testerDate').value = new Date().toISOString().split('T')[0];
+            document.getElementById('overallNotes').value = roleMeta.dummy.notes;
+
+            quickPassAll();
+            alert(`Data pengujian untuk role [${roleMeta.title}] berhasil diisi secara otomatis!`);
+        }
+
+        // Reset current form
+        function resetCurrentForm() {
+            if (confirm("Reset seluruh isian dan jawaban untuk peran ini?")) {
+                testResults[currentRole] = {};
+                document.getElementById('testerName').value = '';
+                document.getElementById('testerEmail').value = '';
+                document.getElementById('overallNotes').value = '';
+                renderQuestions();
+                lucide.createIcons();
+            }
+        }
+
+        // Update statistics counters
+        function updateStats() {
+            const roleData = UAT_DATA[currentRole];
+            const results = testResults[currentRole] || {};
+            let passCount = 0;
+            let failCount = 0;
+            let answeredCount = 0;
+
+            roleData.questions.forEach(q => {
+                if (results[q.id]) {
+                    answeredCount++;
+                    if (results[q.id].status === 'pass') passCount++;
+                    if (results[q.id].status === 'fail') failCount++;
+                }
+            });
+
+            document.getElementById('roleAnswerCount').innerText = `${answeredCount} / ${roleData.questions.length} Terjawab`;
+            document.getElementById('summaryStats').innerText = `${passCount} Lulus (Pass) • ${failCount} Belum (Fail) • Total ${roleData.questions.length} Butir Pengujian`;
+        }
+
+        // Native Print
+        function printDoc() {
+            window.print();
+        }
+
+        // Export To PDF using jsPDF + autoTable
+        function exportToPDF() {
+            const { jsPDF } = window.jspdf;
+            const doc = new jsPDF('p', 'mm', 'a4');
+            const roleMeta = UAT_DATA[currentRole];
+
+            const name = document.getElementById('testerName').value.trim() || '...........................................';
+            const email = document.getElementById('testerEmail').value.trim() || '-';
+            const dateStr = document.getElementById('testerDate').value || new Date().toISOString().split('T')[0];
+            const notes = document.getElementById('overallNotes').value.trim() || 'Tidak ada catatan tambahan.';
+
+            // Kop Surat
+            doc.setFont('helvetica', 'bold');
+            doc.setFontSize(13);
+            doc.setTextColor(0, 0, 128);
+            doc.text('PERKUMPULAN DHARMAPUTRI', 105, 15, { align: 'center' });
+            doc.setFontSize(14);
+            doc.setTextColor(20, 20, 20);
+            doc.text('SMP KATOLIK SANTA MARIA II MALANG', 105, 21, { align: 'center' });
+
+            doc.setFont('helvetica', 'normal');
+            doc.setFontSize(8.5);
+            doc.setTextColor(80, 80, 80);
+            doc.text('Jl. Panderman No. 7A Malang, Jawa Timur | Telp: (0341) 561871 | Email: smpksantamaria2@gmail.com', 105, 26, { align: 'center' });
+
+            doc.setDrawColor(0, 0, 128);
+            doc.setLineWidth(0.8);
+            doc.line(15, 29, 195, 29);
+            doc.setLineWidth(0.2);
+            doc.line(15, 30, 195, 30);
+
+            // Title
+            doc.setFont('helvetica', 'bold');
+            doc.setFontSize(12);
+            doc.setTextColor(0, 0, 128);
+            doc.text('LEMBAR HASIL USER ACCEPTANCE TESTING (UAT)', 105, 38, { align: 'center' });
+            doc.setFontSize(10);
+            doc.setTextColor(40, 40, 40);
+            doc.text(`Sistem Informasi Kegiatan Ekstrakurikuler (SIKASA) - Role: ${roleMeta.title.toUpperCase()}`, 105, 43, { align: 'center' });
+
+            // Identity Box
+            doc.autoTable({
+                startY: 48,
+                theme: 'plain',
+                styles: { fontSize: 8.5, cellPadding: 1.5 },
+                columnStyles: {
+                    0: { fontStyle: 'bold', width: 35 },
+                    1: { width: 65 },
+                    2: { fontStyle: 'bold', width: 35 },
+                    3: { width: 50 }
+                },
+                body: [
+                    ['Nama Penguji', `: ${name}`, 'Tanggal Pengujian', `: ${dateStr}`],
+                    ['Email Penguji', `: ${email}`, 'Peran (Role)', `: ${roleMeta.title}`],
+                ]
+            });
+
+            // Table Data
+            const results = testResults[currentRole] || {};
+            const tableRows = roleMeta.questions.map((q, idx) => {
+                const res = results[q.id] || { status: 'pass', note: '' };
+                const statusText = res.status === 'pass' ? 'LULUS (PASS)' : 'GAGAL (FAIL)';
+                return [
+                    idx + 1,
+                    q.modul,
+                    q.scenario,
+                    q.expected,
+                    statusText,
+                    res.note || '-'
+                ];
+            });
+
+            doc.autoTable({
+                startY: doc.lastAutoTable.finalY + 4,
+                head: [['No', 'Modul', 'Skenario Pengujian UAT', 'Hasil Diharapkan', 'Status', 'Catatan']],
+                body: tableRows,
+                theme: 'grid',
+                headStyles: {
+                    fillColor: [0, 0, 128],
+                    textColor: [255, 255, 255],
+                    fontSize: 8,
+                    fontStyle: 'bold',
+                    halign: 'center'
+                },
+                styles: {
+                    fontSize: 7.5,
+                    cellPadding: 2,
+                    overflow: 'linebreak',
+                    textColor: [40, 40, 40]
+                },
+                columnStyles: {
+                    0: { halign: 'center', cellWidth: 8 },
+                    1: { fontStyle: 'bold', cellWidth: 22 },
+                    2: { cellWidth: 55 },
+                    3: { cellWidth: 42 },
+                    4: { halign: 'center', fontStyle: 'bold', cellWidth: 24 },
+                    5: { cellWidth: 35 }
+                },
+                didParseCell: function(data) {
+                    if (data.section === 'body' && data.column.index === 4) {
+                        if (data.cell.raw === 'LULUS (PASS)') {
+                            data.cell.styles.textColor = [16, 120, 60];
+                        } else {
+                            data.cell.styles.textColor = [200, 30, 30];
+                        }
+                    }
+                }
+            });
+
+            // Kesimpulan & Tanda Tangan
+            let finalY = doc.lastAutoTable.finalY + 6;
+            if (finalY > 235) {
+                doc.addPage();
+                finalY = 20;
+            }
+
+            doc.setFont('helvetica', 'bold');
+            doc.setFontSize(8.5);
+            doc.setTextColor(0, 0, 128);
+            doc.text('Kesimpulan & Rekomendasi Penguji:', 15, finalY);
+
+            doc.setFont('helvetica', 'normal');
+            doc.setFontSize(8);
+            doc.setTextColor(50, 50, 50);
+            const splitNotes = doc.splitTextToSize(notes, 180);
+            doc.text(splitNotes, 15, finalY + 5);
+
+            const signY = finalY + 12 + (splitNotes.length * 4);
+            const dateObj = new Date(dateStr);
+            const formattedDate = !isNaN(dateObj) ? dateObj.toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' }) : dateStr;
+
+            doc.setFontSize(8.5);
+            doc.text(`Malang, ${formattedDate}`, 145, signY);
+            doc.text('Penguji yang Menyetujui,', 145, signY + 5);
+
+            doc.setFont('helvetica', 'bold');
+            doc.text(name, 145, signY + 28);
+            doc.setFont('helvetica', 'normal');
+            doc.setFontSize(7.5);
+            doc.text(`Role: ${roleMeta.title}`, 145, signY + 32);
+
+            // Save PDF
+            const safeName = roleMeta.title.replace(/\s+/g, '_');
+            doc.save(`UAT_SIKASA_${safeName}_SMPK_Santa_Maria_2.pdf`);
+        }
+    </script>
+</body>
+</html>
